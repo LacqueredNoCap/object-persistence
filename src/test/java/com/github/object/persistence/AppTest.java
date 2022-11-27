@@ -1,4 +1,4 @@
-package com.github.persistent.data.structures;
+package com.github.object.persistence;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

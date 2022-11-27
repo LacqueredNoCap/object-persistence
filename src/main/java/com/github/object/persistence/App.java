@@ -1,4 +1,4 @@
-package com.github.persistent.data.structures;
+package com.github.object.persistence;
 
 /**
  * Hello world!
