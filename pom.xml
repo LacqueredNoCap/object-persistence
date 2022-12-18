@@ -17,13 +17,21 @@
     <maven.compiler.target>11</maven.compiler.target>
     <junit-version>5.9.1</junit-version>
     <mockito.version>4.8.1</mockito.version>
+    <jpa-version>2.2</jpa-version>
+    <auto-service.version>1.0.1</auto-service.version>
+    <h2.version>2.1.214</h2.version>
   </properties>
 
   <dependencies>
     <dependency>
+      <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service</artifactId>
+      <version>${auto-service.version}</version>
+    </dependency>
+    <dependency>
         <groupId>javax.persistence</groupId>
         <artifactId>javax.persistence-api</artifactId>
-        <version>2.2</version>
+        <version>${jpa-version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -40,7 +48,7 @@
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>2.1.214</version>
+      <version>${h2.version}</version>
     </dependency>
   </dependencies>
 
