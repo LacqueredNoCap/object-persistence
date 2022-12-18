@@ -1,6 +1,7 @@
 package com.github.object.persistence.api.session;
 
-public interface Session {
+//будет работать с datasourceWrapper
+public interface Session extends AutoCloseable {
 
     /**
      * Достать сущность из хранилища по id.
