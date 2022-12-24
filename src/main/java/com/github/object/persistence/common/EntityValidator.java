@@ -12,6 +12,15 @@ import java.util.Collection;
 import java.util.List;
 
 public class EntityValidator {
+    private static final EntityValidator INSTANCE = new EntityValidator();
+
+    private EntityValidator(){
+    }
+
+    public static EntityValidator getInstance() {
+        return INSTANCE;
+    }
+
     public void validateEntity(Class<?> entity) {
         validateClass(entity);
         validateIds(entity);

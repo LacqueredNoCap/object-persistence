@@ -76,11 +76,18 @@
     </dependency>
 
     <dependency>
-      <groupId>com.squareup</groupId>
-      <artifactId>javapoet</artifactId>
-      <version>1.13.0</version>
+      <groupId>org.atteo.classindex</groupId>
+      <artifactId>classindex</artifactId>
+      <version>3.13</version>
     </dependency>
 
+<!--    Нужен для формирования shaded-jar (позволяет перезаписывать версии зависимостей, -->
+<!--    если и в этом jar и в jar спользующем этот в качестве зависимости используется одна и та же зависимость разных версий)-->
+<!--    <dependency>-->
+<!--      <groupId>org.atteo.classindex</groupId>-->
+<!--      <artifactId>classindex-transformer</artifactId>-->
+<!--      <version>3.13</version>-->
+<!--    </dependency>-->
 
   </dependencies>
 
@@ -132,6 +139,29 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.4.1</version>
         </plugin>
+<!--        <plugin>-->
+<!--          <artifactId>maven-shade-plugin</artifactId>-->
+<!--          <version>3.4.1</version>-->
+<!--          <executions>-->
+<!--            <execution>-->
+<!--              <phase>package</phase>-->
+<!--              <goals>-->
+<!--                <goal>shade</goal>-->
+<!--              </goals>-->
+<!--              <configuration>-->
+<!--                <transformers>-->
+<!--                  <transformer implementation="org.atteo.classindex.ClassIndexTransformer"/>-->
+<!--                </transformers>-->
+<!--              </configuration>-->
+<!--            </execution>-->
+<!--          </executions>-->
+<!--          <dependencies>-->
+<!--            <dependency>-->
+<!--              <groupId>org.atteo.classindex</groupId>-->
+<!--              <artifactId>classindex-transformer</artifactId>-->
+<!--            </dependency>-->
+<!--          </dependencies>-->
+<!--        </plugin>-->
       </plugins>
     </pluginManagement>
   </build>

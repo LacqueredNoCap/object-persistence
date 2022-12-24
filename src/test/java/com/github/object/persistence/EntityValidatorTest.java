@@ -4,14 +4,13 @@ import com.github.object.persistence.common.EntityValidator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 class EntityValidatorTest {
-    private final EntityValidator parser = new EntityValidator();
+    private final EntityValidator parser = EntityValidator.getInstance();
 
     @Test
-    void parse_TestEntityClass_createdValidSqlScript(){
+    void parse_TestEntityClass_createdValidSqlScript() {
 
         assertDoesNotThrow(() -> parser.validateEntity(TestEntity.class));
     }

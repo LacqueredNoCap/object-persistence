@@ -8,6 +8,4 @@ public interface DataSourceWrapper<T> extends AutoCloseable {
     T getSource();
 
     void execute(String script);
-
-    void close();
 }

@@ -9,7 +9,8 @@ import java.util.stream.Collectors;
 
 public class ReflectionUtils {
     public static final ReflectionUtils INSTANCE = new ReflectionUtils();
-    private ReflectionUtils(){
+
+    private ReflectionUtils() {
     }
 
     public List<Field> getIds(Class<?> entity) {
