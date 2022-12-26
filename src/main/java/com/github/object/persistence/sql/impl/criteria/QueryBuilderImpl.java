@@ -2,10 +2,11 @@ package com.github.object.persistence.sql.impl.criteria;
 
 import java.util.Optional;
 
-import com.github.object.persistence.api.criteria.CriteriaQuery;
+import com.github.object.persistence.api.criteria.QueryBuilder;
 import com.github.object.persistence.api.criteria.Predicate;
+import com.github.object.persistence.api.criteria.query.Query;
 
-public class CriteriaQueryImpl<T> implements CriteriaQuery<T> {
+public class QueryBuilderImpl<T> implements QueryBuilder<T> {
 
     private QueryType queryType;
     private Optional<Predicate> predicate;
@@ -20,36 +21,41 @@ public class CriteriaQueryImpl<T> implements CriteriaQuery<T> {
 
     }
 
-    private CriteriaQueryImpl() {
+    private QueryBuilderImpl() {
         queryType = QueryType.SELECT;
         predicate = Optional.empty();
     }
 
-    public static <T> CriteriaQuery<T> criteriaQuery() {
-        return new CriteriaQueryImpl<>();
+    public static <T> QueryBuilder<T> criteriaQuery() {
+        return new QueryBuilderImpl<>();
     }
 
     @Override
-    public CriteriaQuery<T> select(Class<T> clazz) {
+    public QueryBuilder<T> select(Class<T> clazz) {
         queryType = QueryType.SELECT;
         return null;
     }
 
     @Override
-    public CriteriaQuery<T> update(Class<T> clazz) {
+    public QueryBuilder<T> update(Class<T> clazz) {
         queryType = QueryType.UPDATE;
         return null;
     }
 
     @Override
-    public CriteriaQuery<T> delete(Class<T> clazz) {
+    public QueryBuilder<T> delete(Class<T> clazz) {
         queryType = QueryType.DELETE;
         return null;
     }
 
     @Override
-    public CriteriaQuery<T> where(Predicate pred) {
+    public QueryBuilder<T> where(Predicate pred) {
         predicate = Optional.ofNullable(pred);
+        return null;
+    }
+
+    @Override
+    public Query<T> build() {
         return null;
     }
 
