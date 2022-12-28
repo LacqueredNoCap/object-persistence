@@ -2,6 +2,7 @@ package com.github.object.persistence.common;
 
 import net.sf.cglib.proxy.MethodInterceptor;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,5 +23,13 @@ public interface EntityInfo<T> {
 
     String getEntityName();
 
-    Map<String, Class<?>> getFieldNames();
+    Map<String, Field> getFieldNames();
+
+    Set<Field> getFields();
+
+    Set<Field> getManyToOneFields();
+
+    Set<Field> getOneToOneFields(boolean parent);
+
+    Set<Field> getOneToManyFields();
 }
