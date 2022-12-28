@@ -1,6 +1,6 @@
 package com.github.object.persistence.api.session;
 
-import com.github.object.persistence.api.criteria.QueryBuilder;
+import com.github.object.persistence.api.criteria.Query;
 
 /**
  * TODO: Будет работать с DataSourceWrapper.
@@ -34,12 +34,12 @@ public interface Session extends AutoCloseable {
     <T> void deleteRecord(T entity);
 
     /**
-     * Предоставляет QueryBuilder по типу сущности.
+     * Предоставляет Query по типу сущности.
      *
      * @param clazz тип сущности.
      *
      * @return конфигуратор запросов.
      */
-    <T> QueryBuilder<T> getQueryBuilder(Class<T> clazz);
+    <T> Query<T> getQueryBuilder(Class<T> clazz);
 
 }
