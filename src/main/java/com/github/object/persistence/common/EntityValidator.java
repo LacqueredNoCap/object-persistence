@@ -38,7 +38,7 @@ public class EntityValidator {
     }
 
     private void validateIds(Class<?> entity) {
-        List<Field> ids = ReflectionUtils.INSTANCE.getIds(entity);
+        List<Field> ids = ReflectionUtils.getIds(entity);
         String message;
         if (ids.isEmpty()) {
             message = String.format("Id in entity class %s is not present", entity.getSimpleName());
@@ -53,7 +53,7 @@ public class EntityValidator {
     private void validateField(Field fieldType) {
         Class<?> fieldClass = fieldType.getType();
         if (Collection.class.isAssignableFrom(fieldClass)) {
-            Class<?> itemClass = ReflectionUtils.INSTANCE.getGenericType(fieldType);
+            Class<?> itemClass = ReflectionUtils.getGenericType(fieldType);
             boolean forNotPrimitiveInListCondition = !(itemClass.isPrimitive() || TypeMapper.INSTANCE.getJDBCType(itemClass) == null)
                     && itemClass.isAnnotationPresent(Entity.class);
             if (forNotPrimitiveInListCondition) {
