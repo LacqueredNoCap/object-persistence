@@ -10,9 +10,7 @@ import com.github.object.persistence.common.EntityInfo;
 
 public class QueryImpl<T> implements Query<T> {
 
-    /**
-     * TODO: EntityInfo будет предоставляться из кэша (Session).
-     */
+    // TODO: EntityInfo будет предоставляться из кэша (Session)
     private final EntityInfo<T> entityInfo;
     private QueryType queryType;
     private Optional<Predicate> predicate;
