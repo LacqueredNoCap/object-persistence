@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.github.object.persistence.api.criteria.Predicate;
 import com.github.object.persistence.api.criteria.Query;
+import com.github.object.persistence.common.EntityInfo;
 
 public class QueryImpl<T> implements Query<T> {
 
@@ -18,7 +19,7 @@ public class QueryImpl<T> implements Query<T> {
 
     private enum QueryType {
         SELECT("SELECT %s FROM %s"),
-        UPDATE("UPDATE %s SET VALUES %s"),
+        UPDATE("UPDATE %s SET %s"),
         DELETE("DELETE FROM %s");
 
         QueryType(String pattern) {}
@@ -35,23 +36,23 @@ public class QueryImpl<T> implements Query<T> {
     }
 
     @Override
-    public List<T> selectWhere(Predicate predicate) {
+    public List<T> selectWhere(Predicate pred) {
         queryType = QueryType.SELECT;
-        this.predicate = Optional.ofNullable(predicate);
+        predicate = Optional.ofNullable(pred);
         return new ArrayList<>();
     }
 
     @Override
-    public long updateWhere(Predicate predicate) {
+    public long updateWhere(Predicate pred) {
         queryType = QueryType.UPDATE;
-        this.predicate = Optional.ofNullable(predicate);
+        predicate = Optional.ofNullable(pred);
         return 0;
     }
 
     @Override
-    public long deleteWhere(Predicate predicate) {
+    public long deleteWhere(Predicate pred) {
         queryType = QueryType.DELETE;
-        this.predicate = Optional.ofNullable(predicate);
+        predicate = Optional.ofNullable(pred);
         return 0;
     }
 

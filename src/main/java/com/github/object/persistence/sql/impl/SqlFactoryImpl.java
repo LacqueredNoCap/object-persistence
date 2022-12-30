@@ -1,5 +1,6 @@
 package com.github.object.persistence.sql.impl;
 
+import com.github.object.persistence.api.session.DataSource;
 import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.api.session.SessionFactory;
 import com.github.object.persistence.common.ConnectionInstaller;
@@ -24,7 +25,7 @@ public final class SqlFactoryImpl implements SessionFactory {
     }
 
     @Override
-    public void initializeDatasource() {
+    public void initializeDatasource(DataSource dataSource) {
         Iterable<Class<?>> entityClasses = ClassIndex.getAnnotated(Entity.class);
         installer.installConnection().execute(validateAndCreateTables(entityClasses));
     }
@@ -33,7 +34,7 @@ public final class SqlFactoryImpl implements SessionFactory {
     private String validateAndCreateTables(Iterable<Class<?>> entityClasses) {
         return StreamSupport
                 .stream(entityClasses.spliterator(), false)
-                .map(kclass -> SqlGenerator.getInstance().createTable(kclass))
+                .map(kClass -> SqlGenerator.getInstance().createTable(kClass))
                 .collect(Collectors.joining(" "));
     }
 }

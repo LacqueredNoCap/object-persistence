@@ -1,5 +1,6 @@
 package com.github.object.persistence.sql.impl;
 
+import com.github.object.persistence.api.criteria.Query;
 import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.common.DataSourceWrapper;
 
@@ -25,6 +26,11 @@ public class SqlSession implements Session {
     @Override
     public <T> void deleteRecord(T entity) {
 
+    }
+
+    @Override
+    public <T> Query<T> buildQuery(Class<T> clazz) {
+        return null;
     }
 
     @Override

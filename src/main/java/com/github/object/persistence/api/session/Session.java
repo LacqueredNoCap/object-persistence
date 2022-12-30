@@ -34,12 +34,12 @@ public interface Session extends AutoCloseable {
     <T> void deleteRecord(T entity);
 
     /**
-     * Предоставляет Query по типу сущности.
+     * Предоставляет конфигуратор запросов по типу сущности.
      *
      * @param clazz тип сущности.
      *
      * @return конфигуратор запросов.
      */
-    <T> Query<T> getQueryBuilder(Class<T> clazz);
+    <T> Query<T> buildQuery(Class<T> clazz);
 
 }
