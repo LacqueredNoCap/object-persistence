@@ -2,25 +2,25 @@ package com.github.object.persistence.sql.impl;
 
 import com.github.object.persistence.common.EntityCash;
 import com.github.object.persistence.common.EntityInfo;
-import com.github.object.persistence.common.ReflectionUtils;
+import com.github.object.persistence.common.utils.CollectionUtils;
+import com.github.object.persistence.common.utils.ReflectionUtils;
+import com.github.object.persistence.common.utils.StringUtils;
 import com.github.object.persistence.sql.types.TypeMapper;
 
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SqlGenerator {
-    private static String INSERT_INTO = "INSERT INTO %s (";
-    private static String VALUES = "VALUES ('";
-    private static String VALUES_SEPARATOR = "', '";
-    private static String VALUES_SUFFIX = "');";
-    private static String SUFFIX = ")";
-    private static String SEPARATOR = ", ";
+    private static final String INSERT_INTO = "INSERT INTO %s (";
+    private static final String VALUES = "VALUES ";
+    private static final String VALUES_SEPARATOR = "', '";
+    private static final String VALUES_SUFFIX = "');";
+    private static final String CLOSE_PARENTHESIS = ")";
+    private static final String SEPARATOR = ", ";
+    private static final String OPEN_PARENTHESIS = "(";
+    private static final String CREATE_SCRIPT = "CREATE TABLE IF NOT EXISTS %s (";
 
     private SqlGenerator() {
     }
@@ -38,42 +38,39 @@ public class SqlGenerator {
      * @return сгенерированный SQL-код
      */
     <T> String createTable(Class<T> entityClass) {
-        String tableStartScript = String.format("CREATE TABLE IF NOT EXISTS %s (", entityClass.getSimpleName());
-        return Arrays.stream(entityClass.getDeclaredFields())
-                .map(this::identifySqlType)
-                .collect(Collectors.joining(SEPARATOR, tableStartScript, SUFFIX + ";"));
+        EntityInfo<?> info = EntityCash.getEntityInfo(entityClass);
+        Stream<String> parentRelation = Stream.concat(
+                        info.getOneToOneFields(true).stream(),
+                        info.getManyToOneFields().stream()
+                )
+                .map(this::getTypeAndFieldNameForParentRelation);
+        Stream<String> noRelationStream = info.getNoRelationFields().stream()
+                .map(this::getTypeAndNameForUnrelatedField);
+
+        return prepareScriptWithColumns(
+                Stream.concat(parentRelation, noRelationStream),
+                info.getEntityName(),
+                CREATE_SCRIPT,
+                CLOSE_PARENTHESIS + ";"
+        );
     }
 
-    private String identifySqlType(Field field) {
+    private String getTypeAndFieldNameForParentRelation(Field field) {
+        Field id = getIdOfFieldClass(field);
+
+        String idSqlType = TypeMapper.INSTANCE.getJDBCType(id.getType());
+
+        return StringUtils.separateWithSpace(getIdNameOfFieldClass(field), idSqlType);
+    }
+
+    private String getTypeAndNameForUnrelatedField(Field field) {
         String sqlType = TypeMapper.INSTANCE.getJDBCType(field.getType());
-        String fieldName = field.getType().getSimpleName();
+        String fieldName = field.getName();
         if (sqlType == null) {
-            if (field.isAnnotationPresent(OneToOne.class)) {
-                OneToOne oneToOne = field.getAnnotation(OneToOne.class);
-                return oneToOne.mappedBy() == null ? getIdNameOfFieldClass(field) : "";
-            } else if (field.isAnnotationPresent(ManyToOne.class)) {
-                Field id = getIdOfFieldClass(field);
-
-                String idSqlType = TypeMapper.INSTANCE.getJDBCType(id.getType());
-
-                return getIdNameOfFieldClass(field) + " " + idSqlType;
-            } else if (field.isAnnotationPresent(OneToMany.class)) {
-                return "";
-            } else {
-                String message = String.format("Unexpected type of entity %s field %s", field.getDeclaringClass().getSimpleName(), field.getName());
-                throw new IllegalStateException(message);
-            }
+            String message = String.format("Unexpected type of entity %s field %s", field.getDeclaringClass().getSimpleName(), field.getName());
+            throw new IllegalStateException(message);
         }
-
-        return fieldName + " " + sqlType;
-    }
-
-    private String getIdNameOfFieldClass(Field field) {
-        return String.format("%s_id", field.getType().getSimpleName().toLowerCase());
-    }
-
-    private Field getIdOfFieldClass(Field field) {
-        return ReflectionUtils.getId(field.getType());
+        return StringUtils.separateWithSpace(fieldName, sqlType);
     }
 
 
@@ -85,57 +82,83 @@ public class SqlGenerator {
      */
     String insertRecord(Object entity) {
         EntityInfo<?> info = EntityCash.getEntityInfo(entity.getClass());
-        //анной функцией можно еще и manyTo1 обрабатывать
-        handleParentOneToOne(info.getOneToOneFields(true), entity);
+        Map<String, String> fieldInfo = prepareEntityFieldValues(entity);
 
-//        String insertScript = String.format(INSERT_INTO, info.getEntityName());
-//        String columns = info.getFields().stream().map(field -> handleColumns(entity, field))
-//                .collect(Collectors.joining(SEPARATOR, insertScript, SUFFIX));
-//        String values = info.getFields().stream()
-//                .map(field -> handleValues(entity, field))
-//                .collect(Collectors.joining(VALUES_SEPARATOR, VALUES, VALUES_SUFFIX));
-//        return columns + values;
-        return null;
+        String firstPartOfScript = prepareScriptWithColumns(
+                fieldInfo.keySet().stream(), info.getEntityName(), INSERT_INTO, CLOSE_PARENTHESIS
+        );
+
+        String values = fieldInfo.values().stream()
+                .collect(Collectors.joining(
+                        VALUES_SEPARATOR,
+                        VALUES + OPEN_PARENTHESIS + "'",
+                        VALUES_SUFFIX)
+                );
+
+        String insertScript = StringUtils.separateWithSpace(firstPartOfScript, values);
+
+        Set<String> oneToMany = handleOneToMany(entity);
+        if (!oneToMany.isEmpty()) {
+            return StringUtils.separateWithSpace(insertScript, String.join(" ", oneToMany));
+        }
+
+
+        return insertScript;
     }
 
-    /**
-     * Возвращает карту имя поля : значение поля где поле это не энтити-сущность
-     *
-     * @param fields
-     * @param entity
-     * @return
-     */
-    private Map<String, String> handleColumns(Set<Field> fields, Object entity) {
-        return null;
-    }
+    String insertRecords(Collection<?> records, String entityName) {
+        if (records.isEmpty()) {
+            return "";
+        } else {
+            Map<String, Deque<String>> valuesToInsert = new HashMap<>();
 
-    /**
-     * Создает отдельную карту со значениями для сущностей в коллекции (элемент fields это коллекция)
-     *
-     * @param fields
-     * @param entity
-     * @return
-     */
-    private Map<String, String> handleOneToMany(Set<Field> fields, Object entity) {
-        return null;
-    }
+            StringBuilder secondPartOfScriptBuilder = new StringBuilder();
+            for (Object entity : records) {
+                prepareEntityFieldValues(entity).forEach((key, value) ->
+                        CollectionUtils.putIfAbsent(key, value, valuesToInsert));
 
-    /**
-     * Возвращает карту имя поля : значение поля где поле это id связанной сущности, причем
-     * переданная entity хранит значение ключа
-     *
-     * @param fields поля, аннотированные OneToOne
-     * @param entity сущность содержащая связи
-     * @return карта, где ключ -- имя поля в таблице, а значение его величина в виде строки
-     */
-    private Map<String, String> handleParentOneToOne(Set<Field> fields, Object entity) {
-        return fields.stream().map(field -> {
-                    Field id = getIdOfFieldClass(field);
-                    Object fieldValue = ReflectionUtils.getValueFromField(entity, field);
-                    Object idValue = ReflectionUtils.getValueFromField(fieldValue, id);
-                    return Map.entry(getIdNameOfFieldClass(field), idValue.toString());
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                Set<String> oneToMany = handleOneToMany(entity);
+                if (!oneToMany.isEmpty()) {
+                    secondPartOfScriptBuilder.append(String.join(" ", oneToMany));
+                }
+            }
+
+            String firstPartOfScript = prepareScriptWithColumns(
+                    valuesToInsert.keySet().stream(), entityName, INSERT_INTO, CLOSE_PARENTHESIS
+            );
+
+            secondPartOfScriptBuilder.append(firstPartOfScript);
+            secondPartOfScriptBuilder.append(" ");
+            secondPartOfScriptBuilder.append(VALUES);
+            Iterator<Deque<String>> valuesIterator;
+
+            boolean stop = false;
+            while (!stop) {
+                secondPartOfScriptBuilder.append(OPEN_PARENTHESIS);
+                valuesIterator = valuesToInsert.values().iterator();
+
+                while (valuesIterator.hasNext()) {
+                    Deque<String> currentQueue = valuesIterator.next();
+                    String value = currentQueue.pollFirst();
+                    if (valuesIterator.hasNext()) {
+                        secondPartOfScriptBuilder.append(String.format("'%s', ", value));
+                    } else {
+                        secondPartOfScriptBuilder.append(String.format("'%s'", value));
+                        if (currentQueue.isEmpty()) {
+                            stop = true;
+                            break;
+                        }
+                    }
+                }
+                if (stop) {
+                    secondPartOfScriptBuilder.append(");");
+                } else {
+                    secondPartOfScriptBuilder.append("), ");
+                }
+            }
+
+            return secondPartOfScriptBuilder.toString();
+        }
     }
 
     /**
@@ -168,5 +191,70 @@ public class SqlGenerator {
      */
     <T> String updateRecord(T entity) {
         return null;
+    }
+
+    private String prepareScriptWithColumns(
+            Stream<String> columnNames,
+            String entityName,
+            String script,
+            String suffix
+    ) {
+        return columnNames.collect(Collectors.joining(
+                SEPARATOR,
+                String.format(script, entityName),
+                suffix
+        ));
+    }
+
+    private Map<String, String> handleColumns(Set<Field> fields, Object entity) {
+        return fields.stream().map(field -> {
+            String fieldName = field.getName();
+            TypeMapper.INSTANCE.validateSupportedType(field.getType());
+            Object value = ReflectionUtils.getValueFromField(entity, field);
+            return Map.entry(fieldName, value.toString());
+        }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private Set<String> handleOneToMany(Object entity) {
+        Set<Field> oneToMany = EntityCash.getEntityInfo(entity.getClass()).getOneToManyFields();
+
+        if (!oneToMany.isEmpty()) {
+            return oneToMany.stream()
+                    .map(field -> {
+                        Collection<?> collection = (Collection<?>) ReflectionUtils.getValueFromField(entity, field);
+                        return insertRecords(collection, ReflectionUtils.getGenericType(field).getSimpleName());
+                    }).collect(Collectors.toSet());
+        } else {
+            return Set.of();
+        }
+    }
+
+    private Map<String, String> prepareEntityFieldValues(Object entity) {
+        EntityInfo<?> info = EntityCash.getEntityInfo(entity.getClass());
+
+        Map<String, String> oneToOneValues = handleParentRelation(info.getOneToOneFields(true), entity);
+        Map<String, String> manyToOneValues = handleParentRelation(info.getManyToOneFields(), entity);
+        Map<String, String> columns = handleColumns(info.getNoRelationFields(), entity);
+        return Stream.of(oneToOneValues, manyToOneValues, columns)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private Map<String, String> handleParentRelation(Set<Field> fields, Object entity) {
+        return fields.stream().map(field -> {
+                    Field id = getIdOfFieldClass(field);
+                    Object fieldValue = ReflectionUtils.getValueFromField(entity, field);
+                    Object idValue = ReflectionUtils.getValueFromField(fieldValue, id);
+                    return Map.entry(getIdNameOfFieldClass(field), idValue.toString());
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private String getIdNameOfFieldClass(Field field) {
+        return String.format("%s_id", field.getType().getSimpleName().toLowerCase());
+    }
+
+    private Field getIdOfFieldClass(Field field) {
+        return ReflectionUtils.getId(field.getType());
     }
 }

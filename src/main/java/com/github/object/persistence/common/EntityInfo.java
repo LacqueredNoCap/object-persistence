@@ -32,4 +32,6 @@ public interface EntityInfo<T> {
     Set<Field> getOneToOneFields(boolean parent);
 
     Set<Field> getOneToManyFields();
+
+    Set<Field> getNoRelationFields();
 }

@@ -15,7 +15,7 @@ public class TypeMapper {
     }
 
     //как минимум надо добавить timestamp_with_timezone
-    private Map<Class<?>, JDBCType> initMap(){
+    private Map<Class<?>, JDBCType> initMap() {
         return Map.ofEntries(
                 Map.entry(LocalTime.class, JDBCType.TIME),
                 Map.entry(Float.class, JDBCType.REAL),
@@ -33,7 +33,14 @@ public class TypeMapper {
         );
     }
 
-    public String getJDBCType(Class<?> javaType){
+    public String getJDBCType(Class<?> javaType) {
+        validateSupportedType(javaType);
         return types.get(javaType).getName();
+    }
+
+    public void validateSupportedType(Class<?> objectType) {
+        if (!types.containsKey(objectType)) {
+            throw new IllegalArgumentException("Given type not supported");
+        }
     }
 }

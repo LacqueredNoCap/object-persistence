@@ -1,4 +1,4 @@
-package com.github.object.persistence.common;
+package com.github.object.persistence.common.utils;
 
 import com.github.object.persistence.exception.ReflectionOperationException;
 
