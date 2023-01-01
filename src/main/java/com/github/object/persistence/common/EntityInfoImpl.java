@@ -1,5 +1,6 @@
 package com.github.object.persistence.common;
 
+import com.github.object.persistence.common.utils.StringUtils;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 
@@ -15,14 +16,21 @@ import java.util.stream.Collectors;
 
 public class EntityInfoImpl<T> implements EntityInfo<T> {
     private final Class<T> type;
-    private final Set<Field> fields = initFields();
-    private final Map<String, Field> fieldsMap = initFieldsMap();
-    private final Set<Field> manyToOneFields = getFieldsWithAnnotation(ManyToOne.class);
-    private final Set<Field> oneToOneFields = getFieldsWithAnnotation(OneToOne.class);
-    private final Set<Field> oneToManyFields = getFieldsWithAnnotation(OneToMany.class);
+    private final Set<Field> fields;
+    private final Map<String, Field> fieldsMap;
+    private final Set<Field> manyToOneFields;
+    private final Set<Field> oneToOneFields;
+    private final Set<Field> oneToManyFields;
+    private final Set<Field> noRelationFields;
 
     private EntityInfoImpl(Class<T> type) {
         this.type = type;
+        this.fields = initFields();
+        fieldsMap = initFieldsMap();
+        manyToOneFields = getFieldsWithAnnotation(ManyToOne.class);
+        oneToOneFields = getFieldsWithAnnotation(OneToOne.class);
+        oneToManyFields = getFieldsWithAnnotation(OneToMany.class);
+        noRelationFields = initNoRelationFields();
     }
 
     public static EntityInfo<?> create(Class<?> type) {
@@ -71,12 +79,8 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
                 .collect(Collectors.toSet());
     }
 
-    private boolean filterOnParent(boolean parent, Field field) {
-        if (parent) {
-            return !StringUtils.isBlank(field.getAnnotation(OneToOne.class).mappedBy());
-        } else {
-            return StringUtils.isBlank(field.getAnnotation(OneToOne.class).mappedBy());
-        }
+    public Set<Field> getNoRelationFields() {
+        return noRelationFields;
     }
 
     public Set<Field> getOneToManyFields() {
@@ -85,6 +89,14 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
 
     private Set<Field> initFields() {
         return Arrays.stream(type.getDeclaredFields())
+                .collect(Collectors.toSet());
+    }
+
+    private Set<Field> initNoRelationFields() {
+        return fields.stream()
+                .filter(field -> !field.isAnnotationPresent(OneToOne.class))
+                .filter(field -> !field.isAnnotationPresent(ManyToOne.class))
+                .filter(field -> !field.isAnnotationPresent(OneToMany.class))
                 .collect(Collectors.toSet());
     }
 
@@ -101,5 +113,13 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
         Field value = fieldsMap.get(fieldName);
         if (value == null) throw new FieldNotFoundInEntityException(message);
         return value;
+    }
+
+    private boolean filterOnParent(boolean parent, Field field) {
+        if (parent) {
+            return !StringUtils.isBlank(field.getAnnotation(OneToOne.class).mappedBy());
+        } else {
+            return StringUtils.isBlank(field.getAnnotation(OneToOne.class).mappedBy());
+        }
     }
 }
