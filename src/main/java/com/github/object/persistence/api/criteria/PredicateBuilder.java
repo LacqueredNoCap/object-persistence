@@ -10,7 +10,7 @@ public interface PredicateBuilder {
 
     PredicateBuilder or();
 
-    PredicateBuilder not();
+    PredicateBuilder not(Predicate predicate);
 
     PredicateBuilder equal(String field, Object value);
 
@@ -21,5 +21,11 @@ public interface PredicateBuilder {
     PredicateBuilder in(String field, Object... set);
 
     PredicateBuilder between(String field, Object leftBound, Object rightBound);
+
+    PredicateBuilder isNull(String field);
+
+    PredicateBuilder isNotNull(String field);
+
+    Predicate build();
 
 }

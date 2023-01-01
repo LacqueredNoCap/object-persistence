@@ -12,20 +12,10 @@ public class QueryImpl<T> implements Query<T> {
 
     // TODO: EntityInfo будет предоставляться из кэша (Session)
     private final EntityInfo<T> entityInfo;
-    private QueryType queryType;
     private Optional<Predicate> predicate;
-
-    private enum QueryType {
-        SELECT("SELECT %s FROM %s"),
-        UPDATE("UPDATE %s SET %s"),
-        DELETE("DELETE FROM %s");
-
-        QueryType(String pattern) {}
-    }
 
     private QueryImpl(EntityInfo<T> entityInfo) {
         this.entityInfo = entityInfo;
-        queryType = QueryType.SELECT;
         predicate = Optional.empty();
     }
 
@@ -35,21 +25,19 @@ public class QueryImpl<T> implements Query<T> {
 
     @Override
     public List<T> selectWhere(Predicate pred) {
-        queryType = QueryType.SELECT;
         predicate = Optional.ofNullable(pred);
+        //(List<T>) core.execute(Class<T> class, Optional<String> pred.asString())
         return new ArrayList<>();
     }
 
     @Override
     public long updateWhere(Predicate pred) {
-        queryType = QueryType.UPDATE;
         predicate = Optional.ofNullable(pred);
         return 0;
     }
 
     @Override
     public long deleteWhere(Predicate pred) {
-        queryType = QueryType.DELETE;
         predicate = Optional.ofNullable(pred);
         return 0;
     }

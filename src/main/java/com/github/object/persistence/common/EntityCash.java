@@ -18,6 +18,7 @@ public class EntityCash {
                 .collect(Collectors.toMap(aClass -> aClass, EntityInfoImpl::create));
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> EntityInfo<T> getEntityInfo(Class<T> entityClass) {
         return (EntityInfo<T>) cashMap.get(entityClass);
     }

@@ -3,6 +3,8 @@ package com.github.object.persistence.sql.impl;
 import com.github.object.persistence.api.criteria.Query;
 import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.common.DataSourceWrapper;
+import com.github.object.persistence.common.EntityCash;
+import com.github.object.persistence.sql.impl.criteria.QueryImpl;
 
 import java.sql.Connection;
 
@@ -30,7 +32,7 @@ public class SqlSession implements Session {
 
     @Override
     public <T> Query<T> buildQuery(Class<T> clazz) {
-        return null;
+        return QueryImpl.getQuery(EntityCash.getEntityInfo(clazz));
     }
 
     @Override
