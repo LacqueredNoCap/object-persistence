@@ -2,9 +2,7 @@ package com.github.object.persistence.api.session;
 
 import com.github.object.persistence.api.criteria.Query;
 
-/**
- * TODO: Будет работать с DataSourceWrapper.
- */
+// TODO: Будет работать с DataSourceWrapper.
 public interface Session extends AutoCloseable {
 
     /**

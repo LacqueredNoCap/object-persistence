@@ -14,5 +14,5 @@ public interface SessionFactory {
 
     Session getCurrentSession();
 
-    void initializeDatasource(DataSource dataSource);
+    void initializeDatasource();
 }

@@ -2,21 +2,25 @@ package com.github.object.persistence.api.criteria;
 
 public interface PredicateBuilder {
 
-    PredicateBuilder and(Predicate predicate);
+    PredicateBuilder and(PredicateBuilder other);
 
     PredicateBuilder and();
 
-    PredicateBuilder or(Predicate predicate);
+    PredicateBuilder or(PredicateBuilder other);
 
     PredicateBuilder or();
 
-    PredicateBuilder not(Predicate predicate);
+    PredicateBuilder not(PredicateBuilder predicateBuilder);
 
     PredicateBuilder equal(String field, Object value);
 
     PredicateBuilder greaterThan(String field, Object value);
 
+    PredicateBuilder greaterThanOrEqual(String field, Object value);
+
     PredicateBuilder lessThan(String field, Object value);
+
+    PredicateBuilder lessThanOrEqual(String field, Object value);
 
     PredicateBuilder in(String field, Object... set);
 

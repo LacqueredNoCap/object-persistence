@@ -1,6 +1,5 @@
 package com.github.object.persistence.sql.impl;
 
-import com.github.object.persistence.api.session.DataSource;
 import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.api.session.SessionFactory;
 import com.github.object.persistence.common.ConnectionInstaller;
@@ -25,11 +24,15 @@ public final class SqlFactoryImpl implements SessionFactory {
     }
 
     @Override
-    public void initializeDatasource(DataSource dataSource) {
+    public Session getCurrentSession() {
+        return null;
+    }
+
+    @Override
+    public void initializeDatasource() {
         Iterable<Class<?>> entityClasses = ClassIndex.getAnnotated(Entity.class);
         installer.installConnection().execute(validateAndCreateTables(entityClasses));
     }
-
 
     private String validateAndCreateTables(Iterable<Class<?>> entityClasses) {
         return StreamSupport

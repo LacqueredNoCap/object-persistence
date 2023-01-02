@@ -115,7 +115,7 @@ public class SqlGenerator {
             StringBuilder secondPartOfScriptBuilder = new StringBuilder();
             for (Object entity : records) {
                 prepareEntityFieldValues(entity).forEach((key, value) ->
-                        CollectionUtils.putIfAbsent(key, value, valuesToInsert));
+                        CollectionUtils.put(key, value, valuesToInsert));
 
                 Set<String> oneToMany = handleOneToMany(entity);
                 if (!oneToMany.isEmpty()) {

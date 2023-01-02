@@ -1,12 +1,12 @@
 package com.github.object.persistence.sql.impl.criteria;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import com.github.object.persistence.api.criteria.Predicate;
 import com.github.object.persistence.api.criteria.Query;
 import com.github.object.persistence.common.EntityInfo;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class QueryImpl<T> implements Query<T> {
 
