@@ -1,5 +1,7 @@
 package com.github.object.persistence.sql.impl.criteria;
 
+import java.util.Locale;
+
 enum PredicatePattern {
 
     AND("(%s) AND (%s)"),
@@ -15,5 +17,17 @@ enum PredicatePattern {
     GREATER_THAN("%s > %s"),
     GREATER_THAN_OR_EQUAL("%s >= %s");
 
-    PredicatePattern(String pattern) {}
+    private final String pattern;
+
+    PredicatePattern(String pattern) {
+        this.pattern = pattern;
+    }
+
+    String getPattern() {
+        return pattern;
+    }
+
+    static String resolvePattern(PredicatePattern pattern, Object... values) {
+        return String.format(Locale.ENGLISH, pattern.getPattern(), values);
+    }
 }

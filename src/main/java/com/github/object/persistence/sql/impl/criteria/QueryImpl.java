@@ -6,6 +6,7 @@ import com.github.object.persistence.common.EntityInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class QueryImpl<T> implements Query<T> {
@@ -31,7 +32,7 @@ public class QueryImpl<T> implements Query<T> {
     }
 
     @Override
-    public long updateWhere(Predicate pred) {
+    public long updateWhere(Map<String, Object> fieldValueMap, Predicate pred) {
         predicate = Optional.ofNullable(pred);
         return 0;
     }

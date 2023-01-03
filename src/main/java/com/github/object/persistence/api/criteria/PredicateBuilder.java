@@ -1,16 +1,14 @@
 package com.github.object.persistence.api.criteria;
 
+import java.util.Set;
+
 public interface PredicateBuilder {
 
     PredicateBuilder and(PredicateBuilder other);
 
-    PredicateBuilder and();
-
     PredicateBuilder or(PredicateBuilder other);
 
-    PredicateBuilder or();
-
-    PredicateBuilder not(PredicateBuilder predicateBuilder);
+    PredicateBuilder not();
 
     PredicateBuilder equal(String field, Object value);
 
@@ -29,6 +27,8 @@ public interface PredicateBuilder {
     PredicateBuilder isNull(String field);
 
     PredicateBuilder isNotNull(String field);
+
+    Set<String> usedVariables();
 
     Predicate build();
 

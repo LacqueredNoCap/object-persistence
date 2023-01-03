@@ -3,16 +3,16 @@ package com.github.object.persistence.sql.impl.criteria;
 import com.github.object.persistence.api.criteria.Predicate;
 import com.github.object.persistence.api.criteria.PredicateBuilder;
 
-import java.util.List;
+import java.util.Set;
 
 public class PredicateSqlImpl implements Predicate {
 
     private final String predicate;
-    private final PredicateInfo info;
+    private final Set<String> usedVariables;
 
-    PredicateSqlImpl(String predicate, PredicateInfo info) {
+    PredicateSqlImpl(String predicate, Set<String> usedVariables) {
         this.predicate = predicate;
-        this.info = info;
+        this.usedVariables = Set.copyOf(usedVariables);
     }
 
     @Override
@@ -21,16 +21,12 @@ public class PredicateSqlImpl implements Predicate {
     }
 
     @Override
-    public String asString() {
-        return predicate;
+    public Set<String> usedVariables() {
+        return usedVariables;
     }
 
     @Override
-    public List<String> usedFields() {
-        return info.usedFields();
-    }
-
-    PredicateInfo getPredicateInfo() {
-        return info;
+    public String toString() {
+        return predicate;
     }
 }
