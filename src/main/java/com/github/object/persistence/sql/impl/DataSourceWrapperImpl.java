@@ -23,6 +23,7 @@ public class DataSourceWrapperImpl<T extends Connection> implements DataSourceWr
     public void execute(String script) {
         try (Statement statement = connection.createStatement()) {
             statement.execute(script);
+            statement.getResultSet();
         } catch (SQLException exception) {
             throw new ExecuteException("Exception while executing statement", exception);
         }

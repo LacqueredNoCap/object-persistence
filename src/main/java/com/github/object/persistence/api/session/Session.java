@@ -1,7 +1,11 @@
 package com.github.object.persistence.api.session;
 
+import java.util.Collection;
+
 //будет работать с datasourceWrapper
 public interface Session extends AutoCloseable {
+
+    <T> boolean createTable(Class<T> entityClass);
 
     /**
      * Достать сущность из хранилища по id.
@@ -20,7 +24,9 @@ public interface Session extends AutoCloseable {
      *
      * @return идентификатор, с котором была сохранена сущность
      */
-    <T> Object saveOrUpdate(T entity);
+    <T> boolean saveOrUpdate(T entity);
+
+    <T> boolean saveOrUpdate(Collection<T> entities);
 
     /**
      * Удалить сущность из хранилища.

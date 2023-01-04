@@ -55,7 +55,7 @@ public class EntityValidator {
         Class<?> fieldClass = fieldType.getType();
         if (Collection.class.isAssignableFrom(fieldClass)) {
             Class<?> itemClass = ReflectionUtils.getGenericType(fieldType);
-            boolean forNotPrimitiveInListCondition = !(itemClass.isPrimitive() || TypeMapper.INSTANCE.getJDBCType(itemClass) == null)
+            boolean forNotPrimitiveInListCondition = !(itemClass.isPrimitive() || TypeMapper.INSTANCE.getSQLTypeString(itemClass) == null)
                     && itemClass.isAnnotationPresent(Entity.class);
             if (forNotPrimitiveInListCondition) {
                 throwWithValidationMessage(fieldType, "Using non-entity class as Collection parameter");
@@ -63,7 +63,6 @@ public class EntityValidator {
             if (!fieldType.isAnnotationPresent(OneToMany.class)) {
                 throwWithValidationMessage(fieldType, "List of values without relation annotation");
             }
-
         }
         boolean forSingleEntityAnnotationCondition = fieldClass.isAnnotationPresent(Entity.class) &&
                 (!fieldType.isAnnotationPresent(OneToOne.class) || !fieldType.isAnnotationPresent(ManyToOne.class));

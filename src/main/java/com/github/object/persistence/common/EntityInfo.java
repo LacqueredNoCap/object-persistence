@@ -27,6 +27,8 @@ public interface EntityInfo<T> {
 
     Set<Field> getFields();
 
+    Set<Field> getTableFields();
+
     Set<Field> getManyToOneFields();
 
     Set<Field> getOneToOneFields(boolean parent);
@@ -34,4 +36,6 @@ public interface EntityInfo<T> {
     Set<Field> getOneToManyFields();
 
     Set<Field> getNoRelationFields();
+
+    Field getIdField();
 }

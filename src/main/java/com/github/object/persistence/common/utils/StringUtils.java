@@ -8,7 +8,7 @@ public class StringUtils {
         return string == null || string.isEmpty() || string.isBlank();
     }
 
-    public static String separateWithSpace(String string1, String string2) {
-        return String.join(" ", string1, string2);
+    public static String separateWithSpace(String... string) {
+        return String.join(" ", string);
     }
 }

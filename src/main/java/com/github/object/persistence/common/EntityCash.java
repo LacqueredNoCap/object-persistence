@@ -21,4 +21,8 @@ public class EntityCash {
     public static <T> EntityInfo<T> getEntityInfo(Class<T> entityClass) {
         return (EntityInfo<T>) cashMap.get(entityClass);
     }
+
+    public static <T> EntityInfo<T> getEntityInfo(T entity) {
+        return (EntityInfo<T>) getEntityInfo(entity.getClass());
+    }
 }
