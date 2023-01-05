@@ -80,7 +80,7 @@ public final class ConfigDataSource {
 
     private void validateProperties(Properties prop, String... propertyNames) {
         for (String property : propertyNames) {
-            if (!prop.contains(property)) {
+            if (prop.get(property) == null) {
                 throw new ValidationException(String.format("Required setting %s is not present", property));
             }
         }

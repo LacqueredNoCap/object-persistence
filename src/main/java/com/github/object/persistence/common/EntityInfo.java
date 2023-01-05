@@ -3,6 +3,7 @@ package com.github.object.persistence.common;
 import net.sf.cglib.proxy.MethodInterceptor;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,6 +17,8 @@ public interface EntityInfo<T> {
     может и будет перехватывать любые гет-сет методы, но логика будет отлчичаться в зависимости от реализации
      */
     T getProxy(MethodInterceptor whatToProxy);
+
+    Collection<T> getCollectionProxy(MethodInterceptor whatToProxy);
 
     Class<?> getFieldClassTypeByName(String fieldName);
 

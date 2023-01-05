@@ -1,17 +1,17 @@
 package com.github.object.persistence.sql.impl;
 
-import com.github.object.persistence.common.DataSourceWrapper;
-import com.github.object.persistence.common.EntityCash;
-import com.github.object.persistence.common.EntityInfo;
-import com.github.object.persistence.common.NullWrapper;
+import com.github.object.persistence.common.*;
 import com.github.object.persistence.common.utils.CollectionUtils;
 import com.github.object.persistence.common.utils.FieldUtils;
 import com.github.object.persistence.common.utils.ReflectionUtils;
 import com.github.object.persistence.exception.ExecuteException;
 import com.github.object.persistence.sql.types.TypeMapper;
+import net.sf.cglib.proxy.MethodInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.FetchType;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import java.lang.reflect.Field;
@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -195,8 +196,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
                 if (foreignKey != null) {
                     processesRelation = getOneToOneParent(
                             wrapper,
-                            field.getType(),
-                            field.getName(),
+                            field,
                             entity,
                             String.format(PREDICATE, FieldUtils.getIdName(field.getType()), foreignKey));
                 }
@@ -214,7 +214,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
                 );
                 Object processesRelation = getOneToOneChild(
                         wrapper,
-                        field.getType(),
+                        field,
                         targetField,
                         entity,
                         predicateByForeignKey(targetField, idValue));
@@ -225,7 +225,10 @@ public class FromSqlToObjectMapper<R extends Connection> {
         for (Field field : info.getManyToOneFields()) {
             if (ReflectionUtils.getValueFromField(entity, field) == null) {
                 Object foreignKey = resultSet.getObject(FieldUtils.getForeignKeyName(field));
-                Object processesRelation = getManyToOne(wrapper, field.getType(), field.getName(), entity,
+                Object processesRelation = getManyToOne(
+                        wrapper,
+                        field,
+                        entity,
                         String.format(PREDICATE, FieldUtils.getIdName(field.getType()), foreignKey));
                 ReflectionUtils.setValueToField(
                         entity,
@@ -257,31 +260,38 @@ public class FromSqlToObjectMapper<R extends Connection> {
         return entity;
     }
 
-    private <T, P> T getManyToOne(
+    private Object getManyToOne(
             DataSourceWrapper<R> wrapper,
-            Class<T> childClass,
-            String fieldName,
-            P parentValue,
+            Field childField,
+            Object parentValue,
             String predicate
-    ) throws SQLException {
-        String script = generator.getFromTableWithPredicate(childClass, predicate);
-        try (PreparedStatement statement = wrapper.getSource()
-                .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            EntityInfo<T> info = EntityCash.getEntityInfo(childClass);
-            ResultSet resultSet = statement.executeQuery();
-            T childEntity = ReflectionUtils.createEmptyInstance(childClass);
-            Field oneToMany = getChildMappedByField(info.getOneToManyFields(), parentValue.getClass(),
-                    field -> field.getAnnotation(OneToMany.class).mappedBy().equals(fieldName));
-            resultSet.next();
-            if (oneToMany == null) {
-                return getWithStatement(wrapper, childEntity, resultSet);
-            }
+    ) {
+        Class<?> childClass = childField.getType();
+        EntityInfo<?> info = EntityCash.getEntityInfo(childClass);
+        Supplier<?> supplier = () -> {
+            String script = generator.getFromTableWithPredicate(childClass, predicate);
+            try (PreparedStatement statement = wrapper.getSource()
+                    .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
 
-            Collection<P> collection = decideTypeOfCollection(oneToMany);
-            collection.add(parentValue);
-            ReflectionUtils.setValueToField(childEntity, oneToMany, collection);
-            return getWithStatement(wrapper, childEntity, resultSet);
-        }
+                ResultSet resultSet = statement.executeQuery();
+                Object childEntity = ReflectionUtils.createEmptyInstance(childClass);
+                Field oneToMany = getChildMappedByField(info.getOneToManyFields(), parentValue.getClass(),
+                        field -> field.getAnnotation(OneToMany.class).mappedBy().equals(childField.getName()));
+                resultSet.next();
+                if (oneToMany == null) {
+                    return getWithStatement(wrapper, childEntity, resultSet);
+                }
+
+                Collection<Object> collection = decideTypeOfCollection(oneToMany);
+                collection.add(parentValue);
+                ReflectionUtils.setValueToField(childEntity, oneToMany, collection);
+                return getWithStatement(wrapper, childEntity, resultSet);
+            } catch (SQLException exception) {
+                throw new ExecuteException(exception);
+            }
+        };
+
+        return checkFetchTypeAndGet(info, supplier, childField.getAnnotation(ManyToOne.class).fetch());
     }
 
     private <P> Collection<P> decideTypeOfCollection(Field parent) {
@@ -305,94 +315,139 @@ public class FromSqlToObjectMapper<R extends Connection> {
             Object childValue,
             Field collectionField,
             String predicate
-    ) throws SQLException {
-        String script = generator.getFromTableWithPredicate(parentClass, predicate);
+    ) {
         EntityInfo<T> parentInfo = EntityCash.getEntityInfo(parentClass);
-        try (PreparedStatement statement = wrapper.getSource()
-                .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            ResultSet resultSet = statement.executeQuery();
-            Collection<T> collection = (Collection<T>) ReflectionUtils.getValueFromField(childValue, collectionField);
-            if (collection == null) {
-                collection = decideTypeOfCollection(collectionField);
-            }
-            Field parentId = parentInfo.getIdField();
-            while (resultSet.next()) {
-                Object idValue = resultSet.getObject(parentId.getName());
-                if (collection.stream().noneMatch(parentItem ->
-                        ReflectionUtils.getValueFromField(parentItem, parentId).equals(idValue))
-                ) {
-                    T parentEntity = ReflectionUtils.createEmptyInstance(parentClass);
-                    ReflectionUtils.setValueToField(parentEntity, targetField, childValue);
-                    getWithStatement(wrapper, parentEntity, resultSet);
-                    collection.add(parentEntity);
+        Supplier<Collection<T>> supplier = () -> {
+            String script = generator.getFromTableWithPredicate(parentClass, predicate);
+            try (PreparedStatement statement = wrapper.getSource()
+                    .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                ResultSet resultSet = statement.executeQuery();
+                Collection<T> collection = (Collection<T>) ReflectionUtils.getValueFromField(childValue, collectionField);
+                if (collection == null) {
+                    collection = decideTypeOfCollection(collectionField);
                 }
+                Field parentId = parentInfo.getIdField();
+                while (resultSet.next()) {
+                    Object idValue = resultSet.getObject(parentId.getName());
+                    if (collection.stream().noneMatch(parentItem ->
+                            ReflectionUtils.getValueFromField(parentItem, parentId).equals(idValue))
+                    ) {
+                        T parentEntity = ReflectionUtils.createEmptyInstance(parentClass);
+                        ReflectionUtils.setValueToField(parentEntity, targetField, childValue);
+                        getWithStatement(wrapper, parentEntity, resultSet);
+                        collection.add(parentEntity);
+                    }
+                }
+                return collection;
+            } catch (SQLException exception) {
+                throw new ExecuteException(exception);
             }
-            return collection;
-        }
+        };
+
+        return checkFetchTypeAndGetCollection(parentInfo, supplier, collectionField.getAnnotation(OneToMany.class).fetch());
     }
 
 
-    private <T> T getOneToOneChild(
+    private Object getOneToOneChild(
             DataSourceWrapper<R> wrapper,
-            Class<T> parentClass,
+            Field parentField,
             Field targetField,
             Object childValue,
             String predicate
-    ) throws SQLException {
-        String script = generator.getFromTableWithPredicate(parentClass, predicate);
-        try (PreparedStatement statement = wrapper.getSource()
-                .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            ResultSet resultSet = statement.executeQuery();
+    ) {
+        Class<?> parentClass = parentField.getType();
+        Supplier<?> supplier = () -> {
+            String script = generator.getFromTableWithPredicate(parentClass, predicate);
+            try (PreparedStatement statement = wrapper.getSource()
+                    .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                ResultSet resultSet = statement.executeQuery();
 
-            if (!resultSet.next()) {
-                return null;
+                if (!resultSet.next()) {
+                    return null;
+                }
+                Object parentEntity = ReflectionUtils.createEmptyInstance(parentClass);
+                ReflectionUtils.setValueToField(parentEntity, targetField, childValue);
+                return getWithStatement(wrapper, parentEntity, resultSet);
+            } catch (SQLException exception) {
+                throw new ExecuteException(exception);
             }
-            T parentEntity = ReflectionUtils.createEmptyInstance(parentClass);
-            ReflectionUtils.setValueToField(parentEntity, targetField, childValue);
-            return getWithStatement(wrapper, parentEntity, resultSet);
-        }
+        };
+
+        return checkFetchTypeAndGet(EntityCash.getEntityInfo(parentClass), supplier, parentField.getAnnotation(OneToOne.class).fetch());
     }
 
-    private <T> T getOneToOneParent(
+    private Object getOneToOneParent(
             DataSourceWrapper<R> wrapper,
-            Class<T> childClass,
-            String fieldName,
+            Field childField,
             Object parentValue,
             String predicate
-    ) throws SQLException {
-        String script = generator.getFromTableWithPredicate(childClass, predicate);
-        try (PreparedStatement statement = wrapper.getSource()
-                .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            EntityInfo<T> info = EntityCash.getEntityInfo(childClass);
-            ResultSet resultSet = statement.executeQuery();
-            T childEntity = ReflectionUtils.createEmptyInstance(childClass);
+    ) {
+        Class<?> childClass = childField.getType();
+        EntityInfo<?> info = EntityCash.getEntityInfo(childClass);
+        Supplier<?> supplier = () -> {
+            String script = generator.getFromTableWithPredicate(childClass, predicate);
             Field oneToOneChild = getChildMappedByField(info.getOneToOneFields(false), parentValue.getClass(),
-                    field -> field.getAnnotation(OneToOne.class).mappedBy().equals(fieldName));
-            resultSet.next();
-            if (oneToOneChild == null) {
-                return getWithStatement(wrapper, childEntity, resultSet);
-            }
+                    field -> field.getAnnotation(OneToOne.class).mappedBy().equals(childField.getName()));
+            try (PreparedStatement statement = wrapper.getSource()
+                    .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                ResultSet resultSet = statement.executeQuery();
+                Object childEntity = ReflectionUtils.createEmptyInstance(childClass);
+                resultSet.next();
+                if (oneToOneChild == null) {
+                    return getWithStatement(wrapper, childEntity, resultSet);
+                }
 
-            ReflectionUtils.setValueToField(childEntity, oneToOneChild, parentValue);
-            return getWithStatement(wrapper, childEntity, resultSet);
+                ReflectionUtils.setValueToField(childEntity, oneToOneChild, parentValue);
+                return getWithStatement(wrapper, childEntity, resultSet);
+            } catch (SQLException e) {
+                throw new ExecuteException(e);
+            }
+        };
+
+        return checkFetchTypeAndGet(info, supplier, childField.getAnnotation(OneToOne.class).fetch());
+    }
+
+    private <T> Collection<T> checkFetchTypeAndGetCollection(EntityInfo<T> info, Supplier<Collection<T>> supplier, FetchType fetchType) {
+        if (fetchType.equals(FetchType.LAZY)) {
+            MethodInterceptor interceptor = new ProxyObject<>(supplier);
+            return info.getCollectionProxy(interceptor);
         }
+
+        return supplier.get();
+    }
+
+    private Object checkFetchTypeAndGet(EntityInfo<?> info, Supplier<?> supplier, FetchType fetchType) {
+        if (fetchType.equals(FetchType.LAZY)) {
+            MethodInterceptor interceptor = new ProxyObject<>(supplier);
+            return info.getProxy(interceptor);
+        }
+
+        return supplier.get();
     }
 
     private Field getChildMappedByField(Collection<Field> fields,
                                         Class<?> parentClass,
                                         Predicate<Field> annotationCondition) {
-        long count = fields.stream().filter(field -> ReflectionUtils.getGenericType(field).equals(parentClass)).count();
+        long count = fields.stream().filter(field -> getChildFieldType(field, parentClass)).count();
         if (count > 1) {
             return fields.stream()
-                    .filter(field -> ReflectionUtils.getGenericType(field).equals(parentClass))
+                    .filter(field -> getChildFieldType(field, parentClass))
                     .filter(annotationCondition)
                     .findFirst().orElseThrow(IllegalStateException::new);
         } else if (count == 0) {
             return null;
         } else {
             return fields.stream()
-                    .filter(field -> ReflectionUtils.getGenericType(field).equals(parentClass))
+                    .filter(field -> getChildFieldType(field, parentClass))
                     .findFirst().orElseThrow(IllegalStateException::new);
+        }
+    }
+
+    private boolean getChildFieldType(Field field, Class<?> parentClass) {
+        if (Collection.class.isAssignableFrom(field.getType())) {
+            return ReflectionUtils.getGenericType(field).equals(parentClass);
+        } else {
+            return field.getType().equals(parentClass);
         }
     }
 

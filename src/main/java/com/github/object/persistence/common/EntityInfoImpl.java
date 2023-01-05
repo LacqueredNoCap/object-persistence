@@ -46,6 +46,11 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
     }
 
     @Override
+    public Collection<T> getCollectionProxy(MethodInterceptor whatToProxy) {
+        return (Collection<T>) Enhancer.create(type, whatToProxy);
+    }
+
+    @Override
     public Class<?> getFieldClassTypeByName(String fieldName) {
         return getFieldByName(fieldName).getType();
     }
