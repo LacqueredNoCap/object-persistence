@@ -169,11 +169,11 @@ public class SqlGenerator {
     private String getIdSqlType(Field field) {
         Field id = FieldUtils.getIdField(field);
 
-        return TypeMapper.INSTANCE.getSQLTypeString(id.getType());
+        return TypeMapper.getSQLTypeString(id.getType());
     }
 
     private String getTypeAndNameForUnrelatedField(Field field) {
-        String sqlType = TypeMapper.INSTANCE.getSQLTypeString(field.getType());
+        String sqlType = TypeMapper.getSQLTypeString(field.getType());
         String fieldName = field.getName();
         if (sqlType == null) {
             String message = String.format("Unexpected type of entity %s field %s", field.getDeclaringClass().getSimpleName(), field.getName());

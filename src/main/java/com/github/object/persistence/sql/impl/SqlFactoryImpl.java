@@ -2,6 +2,7 @@ package com.github.object.persistence.sql.impl;
 
 import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.api.session.SessionFactory;
+import com.github.object.persistence.common.ConfigDataSource;
 import com.github.object.persistence.common.ConnectionInstaller;
 import com.github.object.persistence.common.DataSourceWrapper;
 import org.atteo.classindex.ClassIndex;
@@ -29,15 +30,17 @@ public final class SqlFactoryImpl implements SessionFactory {
 
     @Override
     public void initializeDatasource() {
-        Iterable<Class<?>> entityClasses = ClassIndex.getAnnotated(Entity.class);
-        installer.installConnection().execute(validateAndCreateTables(entityClasses));
+        if (ConfigDataSource.getInstance().isInitializeNeeded()) {
+            Iterable<Class<?>> entityClasses = ClassIndex.getAnnotated(Entity.class);
+            installer.installConnection().execute(validateAndCreateTables(entityClasses));
+        }
     }
 
 
     private String validateAndCreateTables(Iterable<Class<?>> entityClasses) {
         return StreamSupport
                 .stream(entityClasses.spliterator(), false)
-                .map(kclass -> SqlGenerator.getInstance().createTable(kclass))
+                .map(kClass -> SqlGenerator.getInstance().createTable(kClass))
                 .collect(Collectors.joining(" "));
     }
 }

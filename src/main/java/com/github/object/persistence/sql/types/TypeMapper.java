@@ -9,14 +9,13 @@ import java.util.Date;
 import java.util.Map;
 
 public class TypeMapper {
-    public static final TypeMapper INSTANCE = new TypeMapper();
-    private final Map<Class<?>, SQLType> types = initMap();
+    private static final Map<Class<?>, SQLType> types = initMap();
 
     private TypeMapper() {
     }
 
     //как минимум надо добавить timestamp_with_timezone
-    private Map<Class<?>, SQLType> initMap() {
+    private static Map<Class<?>, SQLType> initMap() {
         return Map.ofEntries(
                 Map.entry(LocalTime.class, JDBCType.TIME),
                 Map.entry(Float.class, JDBCType.REAL),
@@ -34,18 +33,22 @@ public class TypeMapper {
         );
     }
 
-    public String getSQLTypeString(Class<?> javaType) {
+    public static String getSQLTypeString(Class<?> javaType) {
         return getSQLType(javaType).getName();
     }
 
-    public SQLType getSQLType(Class<?> javaType) {
+    public static SQLType getSQLType(Class<?> javaType) {
         validateSupportedType(javaType);
         return types.get(javaType);
     }
 
-    public void validateSupportedType(Class<?> objectType) {
+    public static void validateSupportedType(Class<?> objectType) {
+        validateSupportedType(objectType, new IllegalArgumentException(String.format("Given type %s not supported", objectType)));
+    }
+
+    public static void validateSupportedType(Class<?> objectType, RuntimeException exception) {
         if (!types.containsKey(objectType)) {
-            throw new IllegalArgumentException(String.format("Given type %s not supported", objectType));
+            throw exception;
         }
     }
 }

@@ -29,7 +29,7 @@ public class SessionProvider {
     }
 
     private SessionFactory decideSession() {
-        SessionFactory factory = factories.get(ConfigDataSource.INSTANCE.getDataSourceType());
+        SessionFactory factory = factories.get(ConfigDataSource.getInstance().getDataSourceType());
         if (factory == null) {
             String message = String.format("Factory with name %s is not present in provider", DbTypes.RELATIONAL.typeName);
             throw new IllegalStateException(message);

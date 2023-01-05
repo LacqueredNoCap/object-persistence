@@ -417,9 +417,9 @@ public class FromSqlToObjectMapper<R extends Connection> {
         try {
             Class<?> objectType = object.getClass();
             if (objectType.equals(NullWrapper.class)) {
-                statement.setNull(index, TypeMapper.INSTANCE.getSQLType(((NullWrapper) object).getType()).getVendorTypeNumber());
+                statement.setNull(index, TypeMapper.getSQLType(((NullWrapper) object).getType()).getVendorTypeNumber());
             } else {
-                statement.setObject(index, object, TypeMapper.INSTANCE.getSQLType(objectType).getVendorTypeNumber());
+                statement.setObject(index, object, TypeMapper.getSQLType(objectType).getVendorTypeNumber());
             }
         } catch (SQLException e) {
             logger.error("Exception during preparing statement", e);
@@ -430,7 +430,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     private Map<String, Object> handleColumns(Set<Field> fields, Object entity) {
         return fields.stream().map(field -> {
             String fieldName = field.getName();
-            TypeMapper.INSTANCE.validateSupportedType(field.getType());
+            TypeMapper.validateSupportedType(field.getType());
             Object value = ReflectionUtils.getValueFromField(entity, field);
             return Map.entry(fieldName, value);
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

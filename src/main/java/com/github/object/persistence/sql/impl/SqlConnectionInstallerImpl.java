@@ -16,11 +16,11 @@ public class SqlConnectionInstallerImpl implements ConnectionInstaller<Connectio
 
     public SqlConnectionInstallerImpl() {
         try {
-            Class.forName(ConfigDataSource.INSTANCE.getDriver());
-            this.url = ConfigDataSource.INSTANCE.getDataSourceUrl();
+            Class.forName(ConfigDataSource.getInstance().getDriver());
+            this.url = ConfigDataSource.getInstance().getDataSourceUrl();
             Properties datasourceProperties = new Properties();
-            datasourceProperties.setProperty("user", ConfigDataSource.INSTANCE.getUsername());
-            datasourceProperties.setProperty("password", ConfigDataSource.INSTANCE.getPassword());
+            datasourceProperties.setProperty("user", ConfigDataSource.getInstance().getUsername());
+            datasourceProperties.setProperty("password", ConfigDataSource.getInstance().getPassword());
             this.properties = datasourceProperties;
         } catch (ClassNotFoundException exception) {
             throw new InstallConnectionException("The specified driver was not found", exception);
