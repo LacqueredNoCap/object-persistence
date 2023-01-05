@@ -1,6 +1,7 @@
 package com.github.object.persistence.api.session;
 
 import java.util.Collection;
+import java.util.List;
 
 //будет работать с datasourceWrapper
 public interface Session extends AutoCloseable {
@@ -34,5 +35,9 @@ public interface Session extends AutoCloseable {
      * @param entity сущность, которую необходимо сохранить
      */
     <T> void deleteRecord(T entity);
+
+    <T> List<T> getRecords(Class<T> entityClass, String predicate);
+
+    <T> void deleteRecord(Class<T> entityClass, String predicate);
 
 }
