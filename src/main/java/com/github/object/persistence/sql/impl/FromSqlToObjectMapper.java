@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,18 +49,22 @@ public class FromSqlToObjectMapper<R extends Connection> {
     }
 
     <T> boolean insert(DataSourceWrapper<R> wrapper, T entity) {
-        handleOneToOneForInsert(entity, wrapper);
+        handleOneToOneForInsertOrUpdate(entity, wrapper, this::insert);
         handleOneToManyForInsert(entity, wrapper);
         Map<String, Object> fieldNameValueMap = prepareEntityFieldValues(entity);
         String script = generator.insertRecord(entity.getClass(), fieldNameValueMap.keySet());
-        IntStream fieldValueRange = IntStream.rangeClosed(1, fieldNameValueMap.size());
+        return insertOrUpdate(wrapper, script, fieldNameValueMap.values());
+    }
+
+    <T> boolean isEntityExistInDB(DataSourceWrapper<R> wrapper, T entity) {
+        Field idField = FieldUtils.getIdField(entity.getClass());
+        Object idValue = ReflectionUtils.getValueFromField(entity, idField);
+        String script = generator.getFromTableWithPredicate(entity.getClass(), predicateById(idField, idValue));
         try (PreparedStatement statement = wrapper.getSource().prepareStatement(script)) {
-            Iterator<Object> valueIterator = fieldNameValueMap.values().iterator();
-            fieldValueRange.forEach(currentIndex -> setObjectToStatement(valueIterator.next(), currentIndex, statement));
-            return statement.executeUpdate() == 1;
+            return statement.executeQuery().next();
         } catch (Exception exception) {
-            logger.error("Exception during insert", exception);
-            return false;
+            logger.error("An exception while checking existence of entity", exception);
+            throw new ExecuteException(exception);
         }
     }
 
@@ -71,7 +76,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
             Map<String, Deque<Object>> valuesToInsert = new HashMap<>();
 
             for (T entity : records) {
-                handleOneToOneForInsert(entity, wrapper);
+                handleOneToOneForInsertOrUpdate(entity, wrapper, this::insert);
                 handleOneToManyForInsert(entity, wrapper);
                 prepareEntityFieldValues(entity).forEach((key, value) ->
                         CollectionUtils.putIfAbsent(key, value, valuesToInsert));
@@ -117,6 +122,11 @@ public class FromSqlToObjectMapper<R extends Connection> {
         }
     }
 
+    <T, I> T get(DataSourceWrapper<R> wrapper, Class<T> entityClass, I idValue) {
+        Field idField = FieldUtils.getIdField(entityClass);
+        return get(wrapper, entityClass, predicateById(idField, idValue)).get(0);
+    }
+
     <T> void delete(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
         String script = generator.getFromTableWithPredicate(entityClass, predicate);
         try (PreparedStatement statement = wrapper.getSource()
@@ -125,7 +135,9 @@ public class FromSqlToObjectMapper<R extends Connection> {
             EntityInfo<T> info = EntityCash.getEntityInfo(entityClass);
             while (resultSet.next()) {
                 Object idValue = resultSet.getObject(info.getIdField().getName());
+                cascadeDeleteChildRelations(wrapper, entityClass, idValue);
 
+                resultSet.deleteRow();
             }
         } catch (Exception e) {
             logger.error("Exception during delete", e);
@@ -134,10 +146,38 @@ public class FromSqlToObjectMapper<R extends Connection> {
     }
 
     <T> void delete(DataSourceWrapper<R> wrapper, T entity) {
-        Map<Class<?>, Deque<String>> relatedEntities = handleCascadeDelete(entity);
-        for (Map.Entry<Class<?>, Deque<String>> entry : relatedEntities.entrySet()) {
-            entry.getValue().forEach(where -> delete(wrapper, entry.getKey(), where));
+        Field idField = FieldUtils.getIdField(entity.getClass());
+        delete(wrapper, entity.getClass(), predicateById(idField, ReflectionUtils.getValueFromField(entity, idField)));
+    }
+
+    <T> boolean update(DataSourceWrapper<R> wrapper, T entity) {
+        handleOneToOneForInsertOrUpdate(entity, wrapper, this::update);
+        handleOneToManyForUpdate(entity, wrapper);
+        Field idField = FieldUtils.getIdField(entity.getClass());
+        String where = predicateById(idField, ReflectionUtils.getValueFromField(entity, idField));
+        Map<String, Object> fieldNameValueMap = prepareEntityFieldValues(entity);
+        String script = generator.updateByPredicate(entity.getClass(), fieldNameValueMap.keySet(), where);
+        return insertOrUpdate(wrapper, script, fieldNameValueMap.values());
+    }
+
+    private boolean insertOrUpdate(DataSourceWrapper<R> wrapper, String script, Collection<Object> values) {
+        IntStream fieldValueRange = IntStream.rangeClosed(1, values.size());
+        try (PreparedStatement statement = wrapper.getSource().prepareStatement(script)) {
+            Iterator<Object> valueIterator = values.iterator();
+            fieldValueRange.forEach(currentIndex -> setObjectToStatement(valueIterator.next(), currentIndex, statement));
+            return statement.executeUpdate() == 1;
+        } catch (Exception exception) {
+            logger.error("Exception during insert or update", exception);
+            return false;
         }
+    }
+
+    private String predicateByForeignKey(Field targetField, Object idValue) {
+        return String.format(PREDICATE, FieldUtils.getForeignKeyName(targetField), idValue);
+    }
+
+    private String predicateById(Field idField, Object idValue) {
+        return String.format(PREDICATE, idField.getName(), idValue);
     }
 
     private <T> T getWithStatement(DataSourceWrapper<R> wrapper, T entity, ResultSet resultSet) throws SQLException {
@@ -158,7 +198,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
                             field.getType(),
                             field.getName(),
                             entity,
-                            String.format(PREDICATE, FieldUtils.getIdNameOfFieldClass(field.getType()), foreignKey));
+                            String.format(PREDICATE, FieldUtils.getIdName(field.getType()), foreignKey));
                 }
                 ReflectionUtils.setValueToField(entity, field, processesRelation);
             }
@@ -167,15 +207,17 @@ public class FromSqlToObjectMapper<R extends Connection> {
         for (Field field : info.getOneToOneFields(false)) {
             if (ReflectionUtils.getValueFromField(entity, field) == null) {
                 Object idValue = ReflectionUtils.getValueFromField(entity, info.getIdField());
-                OneToOne annotation = field.getAnnotation(OneToOne.class);
+                Field targetField = getParentMappedByField(
+                        EntityCash.getEntityInfo(field.getType()).getOneToOneFields(true),
+                        entity.getClass(),
+                        field.getAnnotation(OneToOne.class).mappedBy()
+                );
                 Object processesRelation = getOneToOneChild(
                         wrapper,
                         field.getType(),
-                        annotation.mappedBy(),
+                        targetField,
                         entity,
-                        String.format(PREDICATE, FieldUtils.getForeignKeyName(
-                                ReflectionUtils.getFieldByName(field.getType(), annotation.mappedBy())
-                        ), idValue));
+                        predicateByForeignKey(targetField, idValue));
                 ReflectionUtils.setValueToField(entity, field, processesRelation);
             }
         }
@@ -184,7 +226,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
             if (ReflectionUtils.getValueFromField(entity, field) == null) {
                 Object foreignKey = resultSet.getObject(FieldUtils.getForeignKeyName(field));
                 Object processesRelation = getManyToOne(wrapper, field.getType(), field.getName(), entity,
-                        String.format(PREDICATE, FieldUtils.getIdNameOfFieldClass(field.getType()), foreignKey));
+                        String.format(PREDICATE, FieldUtils.getIdName(field.getType()), foreignKey));
                 ReflectionUtils.setValueToField(
                         entity,
                         field,
@@ -195,18 +237,20 @@ public class FromSqlToObjectMapper<R extends Connection> {
 
         for (Field field : info.getOneToManyFields()) {
             Object idValue = ReflectionUtils.getValueFromField(entity, info.getIdField());
-            OneToMany annotation = field.getAnnotation(OneToMany.class);
             Class<?> parentClass = ReflectionUtils.getGenericType(field);
-            EntityInfo<?> parentInfo = EntityCash.getEntityInfo(parentClass);
-            Field targetField = getParentMappedByField(parentInfo.getManyToOneFields(), entity.getClass(), annotation.mappedBy());
+            Field targetField = getParentMappedByField(
+                    EntityCash.getEntityInfo(parentClass).getManyToOneFields(),
+                    entity.getClass(),
+                    field.getAnnotation(OneToMany.class).mappedBy()
+            );
 
             Collection<?> processesRelation = getOneToMany(
                     wrapper,
                     parentClass,
-                    annotation.mappedBy(),
+                    targetField,
                     entity,
                     field,
-                    String.format(PREDICATE, FieldUtils.getForeignKeyName(targetField), idValue));
+                    predicateByForeignKey(targetField, idValue));
             ReflectionUtils.setValueToField(entity, field, processesRelation);
         }
 
@@ -257,7 +301,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     private <T> Collection<T> getOneToMany(
             DataSourceWrapper<R> wrapper,
             Class<T> parentClass,
-            String mappedBy,
+            Field targetField,
             Object childValue,
             Field collectionField,
             String predicate
@@ -274,11 +318,11 @@ public class FromSqlToObjectMapper<R extends Connection> {
             Field parentId = parentInfo.getIdField();
             while (resultSet.next()) {
                 Object idValue = resultSet.getObject(parentId.getName());
-                if (collection.stream()
-                        .filter(parentItem -> ReflectionUtils.getValueFromField(parentItem, parentId).equals(idValue))
-                        .count() == 0) {
+                if (collection.stream().noneMatch(parentItem ->
+                        ReflectionUtils.getValueFromField(parentItem, parentId).equals(idValue))
+                ) {
                     T parentEntity = ReflectionUtils.createEmptyInstance(parentClass);
-                    ReflectionUtils.setValueToField(parentEntity, ReflectionUtils.getFieldByName(parentClass, mappedBy), childValue);
+                    ReflectionUtils.setValueToField(parentEntity, targetField, childValue);
                     getWithStatement(wrapper, parentEntity, resultSet);
                     collection.add(parentEntity);
                 }
@@ -291,7 +335,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     private <T> T getOneToOneChild(
             DataSourceWrapper<R> wrapper,
             Class<T> parentClass,
-            String mappedBy,
+            Field targetField,
             Object childValue,
             String predicate
     ) throws SQLException {
@@ -304,7 +348,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
                 return null;
             }
             T parentEntity = ReflectionUtils.createEmptyInstance(parentClass);
-            ReflectionUtils.setValueToField(parentEntity, ReflectionUtils.getFieldByName(parentClass, mappedBy), childValue);
+            ReflectionUtils.setValueToField(parentEntity, targetField, childValue);
             return getWithStatement(wrapper, parentEntity, resultSet);
         }
     }
@@ -406,7 +450,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     private Map<String, Object> handleParentRelation(Set<Field> fields, Object entity) {
         return fields.stream()
                 .collect(Collectors.toMap(FieldUtils::getForeignKeyName, field -> {
-                    Field id = FieldUtils.getIdFieldOfGivenFieldClass(field);
+                    Field id = FieldUtils.getIdField(field);
                     Object fieldValue = ReflectionUtils.getValueFromField(entity, field);
                     if (fieldValue == null) {
                         return new NullWrapper(id.getType());
@@ -428,55 +472,74 @@ public class FromSqlToObjectMapper<R extends Connection> {
         }
     }
 
-    private void handleOneToOneForInsert(Object entity, DataSourceWrapper<R> wrapper) {
-        Set<Field> oneToOne = EntityCash.getEntityInfo(entity).getOneToOneFields(true);
+    private void handleOneToManyForUpdate(Object entity, DataSourceWrapper<R> wrapper) {
+        Set<Field> oneToMany = EntityCash.getEntityInfo(entity).getOneToManyFields();
 
-        if (!oneToOne.isEmpty()) {
-            for (Field field : oneToOne) {
-                Object relatedEntity = ReflectionUtils.getValueFromField(entity, field);
-                if (relatedEntity != null && !insert(wrapper, relatedEntity)) {
-                    throw new ExecuteException("Argument mismatch during execution of insert script");
+        if (!oneToMany.isEmpty()) {
+            for (Field field : oneToMany) {
+                Collection<?> collection = (Collection<?>) ReflectionUtils.getValueFromField(entity, field);
+                if (collection != null) {
+                    collection.forEach(element -> update(wrapper, element));
                 }
             }
         }
     }
 
-    private Map<Class<?>, Deque<String>> handleCascadeDelete(Object entity) {
-        EntityInfo<?> info = EntityCash.getEntityInfo(entity);
+    private void handleOneToOneForInsertOrUpdate(
+            Object entity,
+            DataSourceWrapper<R> wrapper,
+            BiPredicate<DataSourceWrapper<R>, Object> nextFunction
+    ) {
+        Set<Field> oneToOne = EntityCash.getEntityInfo(entity).getOneToOneFields(false);
+
+        if (!oneToOne.isEmpty()) {
+            for (Field field : oneToOne) {
+                Object relatedEntity = ReflectionUtils.getValueFromField(entity, field);
+                if (relatedEntity != null) {
+                    nextFunction.test(wrapper, relatedEntity);
+                }
+            }
+        }
+    }
+
+    private void cascadeDeleteChildRelations(
+            DataSourceWrapper<R> wrapper, Class<?> entityClass, Object id
+    ) {
+        EntityInfo<?> info = EntityCash.getEntityInfo(entityClass);
         Map<Class<?>, Deque<String>> result = new HashMap<>();
 
         for (Field field : info.getOneToOneFields(false)) {
-            Object targetValue = ReflectionUtils.getValueFromField(entity, field);
-            if (targetValue != null) {
-                Object id = FieldUtils.getIdValue(entity);
-                OneToOne annotation = field.getAnnotation(OneToOne.class);
-                Field targetField = ReflectionUtils.getFieldByName(field.getType(), annotation.mappedBy());
-                CollectionUtils.putIfAbsent(
-                        field.getType(),
-                        String.format(PREDICATE, FieldUtils.getForeignKeyName(targetField), id),
-                        result
-                );
-            }
+            Field targetField = getParentMappedByField(
+                    EntityCash.getEntityInfo(field.getType()).getOneToOneFields(true),
+                    entityClass,
+                    field.getAnnotation(OneToOne.class).mappedBy()
+            );
+            CollectionUtils.putIfAbsent(
+                    field.getType(),
+                    predicateByForeignKey(targetField, id),
+                    result
+            );
         }
 
         for (Field field : info.getOneToManyFields()) {
-            Collection<?> targetValue = (Collection<?>) ReflectionUtils.getValueFromField(entity, field);
-            if (targetValue != null && !targetValue.isEmpty()) {
-                Object id = FieldUtils.getIdValue(entity);
-                Class<?> collectionClass = ReflectionUtils.getGenericType(field);
-                OneToMany annotation = field.getAnnotation(OneToMany.class);
-                Field targetField = ReflectionUtils.getFieldByName(collectionClass, annotation.mappedBy());
-                CollectionUtils.putIfAbsent(
-                        collectionClass,
-                        String.format(PREDICATE, FieldUtils.getForeignKeyName(targetField), id),
-                        result
-                );
-            }
+            Class<?> collectionClass = ReflectionUtils.getGenericType(field);
+            Field targetField = getParentMappedByField(
+                    EntityCash.getEntityInfo(collectionClass).getManyToOneFields(),
+                    entityClass,
+                    field.getAnnotation(OneToMany.class).mappedBy()
+            );
+            CollectionUtils.putIfAbsent(
+                    collectionClass,
+                    predicateByForeignKey(targetField, id),
+                    result
+            );
         }
-        return result;
-    }
 
-    private Map<Class<?>, Deque<String>> handleCascadeDelete(ResultSet resultSet, Class<?> entityClass) {
-        return null;
+        for (Map.Entry<Class<?>, Deque<String>> entry : result.entrySet()) {
+            String where = generator.joinConditions(entry.getValue());
+            delete(wrapper, entry.getKey(), where);
+        }
+
+
     }
 }

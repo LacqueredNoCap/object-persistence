@@ -2,12 +2,10 @@ package com.github.object.persistence.sql.impl;
 
 import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.common.DataSourceWrapper;
-import com.github.object.persistence.common.EntityCash;
-import com.github.object.persistence.common.utils.ReflectionUtils;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.List;
 
 public class SqlSession implements Session {
     private final DataSourceWrapper<Connection> connection;
@@ -26,16 +24,18 @@ public class SqlSession implements Session {
 
     @Override
     public <T, R> T getRecord(Class<T> entityClass, R id) {
-        return (T) mapper.get(connection, entityClass, String.format("%s = %s",
-                EntityCash.getEntityInfo(entityClass).getIdField().getName(), id)).get(0);
+        return mapper.get(connection, entityClass, id);
     }
 
-    public <T> T getRecord(Class<T> entityClass, String predicate) {
-        return (T) mapper.get(connection, entityClass, predicate);
+    public <T> List<T> getRecords(Class<T> entityClass, String predicate) {
+        return mapper.get(connection, entityClass, predicate);
     }
 
     @Override
     public <T> boolean saveOrUpdate(T entity) {
+        if (mapper.isEntityExistInDB(connection, entity)) {
+            return mapper.update(connection, entity);
+        }
         return mapper.insert(connection, entity);
     }
 
@@ -46,13 +46,11 @@ public class SqlSession implements Session {
 
     @Override
     public <T> void deleteRecord(T entity) {
-        Field idField = EntityCash.getEntityInfo(entity.getClass()).getIdField();
-        mapper.delete(connection, entity.getClass(), String.format("%s = %s",
-                idField.getName(), ReflectionUtils.getValueFromField(entity, idField)));
+        mapper.delete(connection, entity);
     }
 
     public <T> void deleteRecord(Class<T> entityClass, String predicate) {
-
+        mapper.delete(connection, entityClass, predicate);
     }
 
     @Override

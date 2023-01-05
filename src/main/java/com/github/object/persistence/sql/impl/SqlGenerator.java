@@ -8,6 +8,7 @@ import com.github.object.persistence.sql.types.TypeMapper;
 
 import javax.persistence.Id;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -122,37 +123,9 @@ public class SqlGenerator {
         return result.substring(0, result.length() - 1) + ";";
     }
 
-    /**
-     * Достает запись из таблицы по идентификатору
-     *
-     * @return сгенерированный SQL-код
-     */
-    String getById(Class<?> kClass) {
-        EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
-        Field idField = info.getIdField();
-        return createWithWhereScript(
-                String.format(SELECT, info.getEntityName()),
-                String.format(PREDICATE, idField.getName())
-        );
-    }
-
     String getFromTableWithPredicate(Class<?> kClass, String predicate) {
         EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
         return createWithWhereScript(String.format(SELECT, info.getEntityName()), predicate);
-    }
-
-    /**
-     * Удаление записи из таблицы по идентификатору
-     *
-     * @return сгенерированный SQL-код
-     */
-    String deleteById(Class<?> kClass) {
-        EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
-        Field idField = info.getIdField();
-        return createWithWhereScript(
-                String.format(DELETE, info.getEntityName()),
-                String.format(PREDICATE, idField.getName())
-        );
     }
 
     String deleteByPredicate(Class<?> kClass, String predicate) {
@@ -160,34 +133,20 @@ public class SqlGenerator {
         return createWithWhereScript(String.format(DELETE, info.getEntityName()), predicate);
     }
 
-    /**
-     * Обновление записи в таблице.
-     *
-     * @return сгенерированный SQL-код
-     */
-    String updateById(Class<?> kClass) {
-        EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
-        Field idField = info.getIdField();
-        return updateByPredicate(
-                kClass,
-                String.format(PREDICATE, idField.getName())
-        );
+    String joinConditions(Collection<String> conditions) {
+        return String.join(" AND ", conditions);
     }
 
-    String updateByPredicate(Class<?> kClass, String predicate) {
+    String updateByPredicate(Class<?> kClass, Set<String> columnNames, String predicate) {
         EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
         String update = StringUtils.separateWithSpace(
                 String.format(UPDATE, info.getEntityName()),
-                SET
-        );
-        String setScript = prepareScriptWithColumns(
-                info.getTableFields().stream().map(field -> String.format(PREDICATE, "?")),
-                update,
-                " "
+                SET,
+                columnNames.stream().map(name -> String.format(PREDICATE, name)).collect(Collectors.joining(SEPARATOR))
         );
 
         return createWithWhereScript(
-                setScript,
+                update,
                 predicate
         );
     }
@@ -208,7 +167,7 @@ public class SqlGenerator {
     }
 
     private String getIdSqlType(Field field) {
-        Field id = FieldUtils.getIdFieldOfGivenFieldClass(field);
+        Field id = FieldUtils.getIdField(field);
 
         return TypeMapper.INSTANCE.getSQLTypeString(id.getType());
     }
