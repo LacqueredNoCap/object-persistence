@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class SqlSession extends AbstractSession {
+
     private final DataSourceWrapper<Connection> connection;
     private final FromSqlToObjectMapper<Connection> mapper;
 
@@ -17,7 +18,6 @@ public class SqlSession extends AbstractSession {
         this.connection = connection;
         this.mapper = mapper;
     }
-
 
     @Override
     public <T> boolean createTable(Class<T> entityClass) {
@@ -48,7 +48,7 @@ public class SqlSession extends AbstractSession {
 
     @Override
     public <T> long updateRecord(Class<T> entityClass, Map<String, Object> fieldValueMap, Optional<String> predicate) {
-        return 0;
+        return mapper.update(connection, entityClass, fieldValueMap, predicate);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class SqlSession extends AbstractSession {
     }
 
     public <T> long deleteRecord(Class<T> entityClass, Optional<String> predicate) {
-        mapper.delete(connection, entityClass, predicate);
+        return mapper.delete(connection, entityClass, predicate);
     }
 
     @Override

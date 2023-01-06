@@ -10,16 +10,17 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.persistence.Entity;
+import javax.persistence.MappedSuperclass;
 import javax.tools.Diagnostic;
 import java.util.Set;
 
-@SupportedAnnotationTypes("javax.persistence.Entity")
+@SupportedAnnotationTypes({"javax.persistence.Entity", "javax.persistence.MappedSuperclass"})
 @AutoService(Processor.class)
 public class EntityProcessor extends ClassIndexProcessor {
     private final Messager logger = processingEnv.getMessager();
 
     public EntityProcessor() {
-        indexAnnotations(Entity.class);
+        indexAnnotations(Entity.class, MappedSuperclass.class);
     }
 
     @Override
@@ -44,7 +45,6 @@ public class EntityProcessor extends ClassIndexProcessor {
         }
 
         super.process(annotations, roundEnv);
-
 
         return true;
     }

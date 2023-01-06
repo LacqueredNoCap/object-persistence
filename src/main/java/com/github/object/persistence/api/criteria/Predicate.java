@@ -8,4 +8,6 @@ public interface Predicate {
 
     Set<String> usedVariables();
 
+    boolean isEmpty();
+
 }

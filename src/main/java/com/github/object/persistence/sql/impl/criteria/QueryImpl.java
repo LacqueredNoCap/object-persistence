@@ -1,9 +1,6 @@
 package com.github.object.persistence.sql.impl.criteria;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import com.github.object.persistence.api.criteria.Predicate;
 import com.github.object.persistence.api.criteria.Query;
@@ -11,7 +8,6 @@ import com.github.object.persistence.api.session.AbstractSession;
 
 public final class QueryImpl<T> implements Query<T> {
 
-    // TODO: EntityInfo будет предоставляться из кэша (Session)
     private final AbstractSession session;
     private final Class<T> clazz;
 
@@ -25,22 +21,40 @@ public final class QueryImpl<T> implements Query<T> {
     }
 
     @Override
-    public List<T> selectWhere(Predicate pred) {
-        Optional<String> predicate = Optional.ofNullable(pred).map(Object::toString);
-        session.getRecords(clazz, predicate);
-        return new ArrayList<>();
+    public List<T> selectWhere(Predicate predicate) {
+        return session.getRecords(clazz, getPredicate(predicate));
     }
 
     @Override
-    public long updateWhere(Map<String, Object> fieldValueMap, Predicate pred) {
-        Optional<String> predicate = Optional.ofNullable(pred).map(Object::toString);
-        return session.updateRecord(clazz, fieldValueMap, predicate);
+    public long updateWhere(Map<String, Object> fieldValueMap, Predicate predicate) {
+        Map<String, Object> map = validateFieldValueMap(fieldValueMap);
+        return session.updateRecord(clazz, map, getPredicate(predicate));
     }
 
     @Override
-    public long deleteWhere(Predicate pred) {
-        Optional<String> predicate = Optional.ofNullable(pred).map(Object::toString);
-        return session.deleteRecord(clazz, predicate);
+    public long deleteWhere(Predicate predicate) {
+        return session.deleteRecord(clazz, getPredicate(predicate));
+    }
+
+    private Optional<String> getPredicate(Predicate predicate) {
+        if (Objects.isNull(predicate) || predicate.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(predicate.toString());
+    }
+
+    private Map<String, Object> validateFieldValueMap(Map<String, Object> map) {
+        if (Objects.isNull(map)) {
+            throw new IllegalArgumentException("Значение 'fieldValueMap' не должно быть null");
+        }
+
+        Map<String, Object> fieldValueMap = new HashMap<>(map);
+        fieldValueMap.remove(null);
+        if (fieldValueMap.isEmpty()) {
+            throw new IllegalArgumentException("Значение 'fieldValueMap' не должно быть пустым");
+        }
+
+        return fieldValueMap;
     }
 
 }

@@ -3,9 +3,7 @@ package com.github.object.persistence.api.session;
 import com.github.object.persistence.api.criteria.Query;
 
 import java.util.Collection;
-import java.util.List;
 
-// TODO: Будет работать с DataSourceWrapper.
 public interface Session extends AutoCloseable {
 
     <T> boolean createTable(Class<T> entityClass);

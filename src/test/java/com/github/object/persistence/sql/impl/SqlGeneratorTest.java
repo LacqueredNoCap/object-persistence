@@ -18,34 +18,34 @@ class SqlGeneratorTest {
 
     private final SqlGenerator generator = SqlGenerator.getInstance();
 
-//    @Test
-//    void insertRecords() {
-//        try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
-//            mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
-//            LocalDate date = LocalDate.now();
-//            String result = generator.insertRecords(
-//                    List.of(new TestEntity(1L, date), new TestEntity(2L, date)),
-//                    ENTITY_NAME
-//            );
-//            assertEquals(
-//                    String.format("INSERT INTO testEntity (date, id) VALUES ('%s', '1'), ('%s', '2');", date, date),
-//                    result
-//            );
-//        }
-//    }
-//
-//    @Test
-//    void insertRecord() {
-//        try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
-//            mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
-//            LocalDate date = LocalDate.now();
-//            String result = generator.insertRecord(new TestEntity(1L, date));
-//            assertEquals(
-//                    String.format("INSERT INTO testEntity (date, id) VALUES ('%s', '1');", date),
-//                    result
-//            );
-//        }
-//    }
+    @Test
+    void insertRecords() {
+        try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
+            mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
+            LocalDate date = LocalDate.now();
+            String result = generator.insertRecords(
+                    List.of(new TestEntity(1L, date), new TestEntity(2L, date)),
+                    ENTITY_NAME
+            );
+            assertEquals(
+                    String.format("INSERT INTO testEntity (date, id) VALUES ('%s', '1'), ('%s', '2');", date, date),
+                    result
+            );
+        }
+    }
+
+    @Test
+    void insertRecord() {
+        try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
+            mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
+            LocalDate date = LocalDate.now();
+            String result = generator.insertRecord(new TestEntity(1L, date));
+            assertEquals(
+                    String.format("INSERT INTO testEntity (date, id) VALUES ('%s', '1');", date),
+                    result
+            );
+        }
+    }
 
     @Test
     void createTable() {

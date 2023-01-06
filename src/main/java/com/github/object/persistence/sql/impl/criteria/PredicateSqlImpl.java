@@ -27,6 +27,11 @@ public final class PredicateSqlImpl implements Predicate {
     }
 
     @Override
+    public boolean isEmpty() {
+        return predicate.isBlank();
+    }
+
+    @Override
     public String toString() {
         return predicate;
     }
