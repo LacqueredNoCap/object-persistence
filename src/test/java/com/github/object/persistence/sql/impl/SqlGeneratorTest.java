@@ -13,8 +13,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SqlGeneratorTest {
-    SqlGenerator generator = SqlGenerator.getInstance();
+
     private static final String ENTITY_NAME = "TestEntity";
+
+    private final SqlGenerator generator = SqlGenerator.getInstance();
+
 //    @Test
 //    void insertRecords() {
 //        try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
@@ -55,4 +58,5 @@ class SqlGeneratorTest {
             );
         }
     }
+
 }

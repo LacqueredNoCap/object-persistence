@@ -17,8 +17,7 @@ import java.util.List;
 public class EntityValidator {
     private static final EntityValidator INSTANCE = new EntityValidator();
 
-    private EntityValidator() {
-    }
+    private EntityValidator() {}
 
     public static EntityValidator getInstance() {
         return INSTANCE;
