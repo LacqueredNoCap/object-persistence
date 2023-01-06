@@ -21,7 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiPredicate;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -29,8 +29,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class FromSqlToObjectMapper<R extends Connection> {
+    private static final Logger logger = LoggerFactory.getLogger(FromSqlToObjectMapper.class);
     private final SqlGenerator generator;
-    private final Logger logger = LoggerFactory.getLogger(FromSqlToObjectMapper.class);
     private static final String PREDICATE = "%s = %s";
 
 
@@ -49,7 +49,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         }
     }
 
-    <T> boolean insert(DataSourceWrapper<R> wrapper, T entity) {
+    <T> long insert(DataSourceWrapper<R> wrapper, T entity) {
         handleOneToOneForInsertOrUpdate(entity, wrapper, this::insert);
         handleOneToManyForInsert(entity, wrapper);
         Map<String, Object> fieldNameValueMap = prepareEntityFieldValues(entity);
@@ -69,9 +69,9 @@ public class FromSqlToObjectMapper<R extends Connection> {
         }
     }
 
-    <T> boolean insert(DataSourceWrapper<R> wrapper, Collection<T> records) {
+    <T> long insert(DataSourceWrapper<R> wrapper, Collection<T> records) {
         if (records.isEmpty()) {
-            return true;
+            return 0;
         } else {
             Class<?> collectionClass = ReflectionUtils.getClassOfCollection(records);
             Map<String, Deque<Object>> valuesToInsert = new HashMap<>();
@@ -98,15 +98,15 @@ public class FromSqlToObjectMapper<R extends Connection> {
                         setObjectToStatement(valueIterator.get().next().pollFirst(), currentIndex, statement);
                     }
                 });
-                return statement.executeUpdate() == sizeOfRecords;
+                return statement.executeUpdate();
             } catch (Exception exception) {
                 logger.error("Exception during insert", exception);
-                return false;
+                return 0;
             }
         }
     }
 
-    <T> List<T> get(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
+    public <T> List<T> get(DataSourceWrapper<R> wrapper, Class<T> entityClass, Optional<String> predicate) {
         String script = generator.getFromTableWithPredicate(entityClass, predicate);
         try (PreparedStatement statement = wrapper.getSource()
                 .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
@@ -128,7 +128,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         return get(wrapper, entityClass, predicateById(idField, idValue)).get(0);
     }
 
-    <T> void delete(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
+    public <T> void delete(DataSourceWrapper<R> wrapper, Class<T> entityClass, Optional<String> predicate) {
         String script = generator.getFromTableWithPredicate(entityClass, predicate);
         try (PreparedStatement statement = wrapper.getSource()
                 .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -151,25 +151,30 @@ public class FromSqlToObjectMapper<R extends Connection> {
         delete(wrapper, entity.getClass(), predicateById(idField, ReflectionUtils.getValueFromField(entity, idField)));
     }
 
-    <T> boolean update(DataSourceWrapper<R> wrapper, T entity) {
+    <T> long update(DataSourceWrapper<R> wrapper, Class<T> entityClass, Map<String, Object> fieldValueMap, Optional<String> predicate) {
+        String script = generator.updateByPredicate(entityClass, fieldValueMap.keySet(), predicate);
+        return insertOrUpdate(wrapper, script, fieldValueMap.values());
+    }
+
+    <T> long update(DataSourceWrapper<R> wrapper, T entity) {
         handleOneToOneForInsertOrUpdate(entity, wrapper, this::update);
         handleOneToManyForUpdate(entity, wrapper);
         Field idField = FieldUtils.getIdField(entity.getClass());
-        String where = predicateById(idField, ReflectionUtils.getValueFromField(entity, idField));
+        Optional<String> where = predicateById(idField, ReflectionUtils.getValueFromField(entity, idField));
         Map<String, Object> fieldNameValueMap = prepareEntityFieldValues(entity);
         String script = generator.updateByPredicate(entity.getClass(), fieldNameValueMap.keySet(), where);
         return insertOrUpdate(wrapper, script, fieldNameValueMap.values());
     }
 
-    private boolean insertOrUpdate(DataSourceWrapper<R> wrapper, String script, Collection<Object> values) {
+    private long insertOrUpdate(DataSourceWrapper<R> wrapper, String script, Collection<Object> values) {
         IntStream fieldValueRange = IntStream.rangeClosed(1, values.size());
         try (PreparedStatement statement = wrapper.getSource().prepareStatement(script)) {
             Iterator<Object> valueIterator = values.iterator();
             fieldValueRange.forEach(currentIndex -> setObjectToStatement(valueIterator.next(), currentIndex, statement));
-            return statement.executeUpdate() == 1;
+            return statement.executeUpdate();
         } catch (Exception exception) {
             logger.error("Exception during insert or update", exception);
-            return false;
+            return 0;
         }
     }
 
@@ -177,8 +182,8 @@ public class FromSqlToObjectMapper<R extends Connection> {
         return String.format(PREDICATE, FieldUtils.getForeignKeyName(targetField), idValue);
     }
 
-    private String predicateById(Field idField, Object idValue) {
-        return String.format(PREDICATE, idField.getName(), idValue);
+    private Optional<String> predicateById(Field idField, Object idValue) {
+        return Optional.of(String.format(PREDICATE, idField.getName(), idValue));
     }
 
     private <T> T getWithStatement(DataSourceWrapper<R> wrapper, T entity, ResultSet resultSet) throws SQLException {
@@ -269,7 +274,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         Class<?> childClass = childField.getType();
         EntityInfo<?> info = EntityCash.getEntityInfo(childClass);
         Supplier<?> supplier = () -> {
-            String script = generator.getFromTableWithPredicate(childClass, predicate);
+            String script = generator.getFromTableWithPredicate(childClass, Optional.of(predicate));
             try (PreparedStatement statement = wrapper.getSource()
                     .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
 
@@ -318,7 +323,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     ) {
         EntityInfo<T> parentInfo = EntityCash.getEntityInfo(parentClass);
         Supplier<Collection<T>> supplier = () -> {
-            String script = generator.getFromTableWithPredicate(parentClass, predicate);
+            String script = generator.getFromTableWithPredicate(parentClass, Optional.ofNullable(predicate));
             try (PreparedStatement statement = wrapper.getSource()
                     .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                 ResultSet resultSet = statement.executeQuery();
@@ -357,7 +362,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     ) {
         Class<?> parentClass = parentField.getType();
         Supplier<?> supplier = () -> {
-            String script = generator.getFromTableWithPredicate(parentClass, predicate);
+            String script = generator.getFromTableWithPredicate(parentClass, Optional.ofNullable(predicate));
             try (PreparedStatement statement = wrapper.getSource()
                     .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                 ResultSet resultSet = statement.executeQuery();
@@ -385,7 +390,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         Class<?> childClass = childField.getType();
         EntityInfo<?> info = EntityCash.getEntityInfo(childClass);
         Supplier<?> supplier = () -> {
-            String script = generator.getFromTableWithPredicate(childClass, predicate);
+            String script = generator.getFromTableWithPredicate(childClass, Optional.ofNullable(predicate));
             Field oneToOneChild = getChildMappedByField(info.getOneToOneFields(false), parentValue.getClass(),
                     field -> field.getAnnotation(OneToOne.class).mappedBy().equals(childField.getName()));
             try (PreparedStatement statement = wrapper.getSource()
@@ -520,7 +525,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         if (!oneToMany.isEmpty()) {
             for (Field field : oneToMany) {
                 Collection<?> collection = (Collection<?>) ReflectionUtils.getValueFromField(entity, field);
-                if (collection != null && !insert(wrapper, collection)) {
+                if (collection != null && insert(wrapper, collection) == 0) {
                     throw new ExecuteException("Argument mismatch during execution of insert script");
                 }
             }
@@ -543,7 +548,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
     private void handleOneToOneForInsertOrUpdate(
             Object entity,
             DataSourceWrapper<R> wrapper,
-            BiPredicate<DataSourceWrapper<R>, Object> nextFunction
+            BiFunction<DataSourceWrapper<R>, Object, Long> nextFunction
     ) {
         Set<Field> oneToOne = EntityCash.getEntityInfo(entity).getOneToOneFields(false);
 
@@ -551,7 +556,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
             for (Field field : oneToOne) {
                 Object relatedEntity = ReflectionUtils.getValueFromField(entity, field);
                 if (relatedEntity != null) {
-                    nextFunction.test(wrapper, relatedEntity);
+                    nextFunction.apply(wrapper, relatedEntity);
                 }
             }
         }
@@ -592,9 +597,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
 
         for (Map.Entry<Class<?>, Deque<String>> entry : result.entrySet()) {
             String where = generator.joinConditions(entry.getValue());
-            delete(wrapper, entry.getKey(), where);
+            delete(wrapper, entry.getKey(), Optional.of(where));
         }
-
-
     }
 }

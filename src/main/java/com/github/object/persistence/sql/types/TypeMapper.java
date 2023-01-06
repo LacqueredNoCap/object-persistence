@@ -8,11 +8,11 @@ import java.time.LocalTime;
 import java.util.Date;
 import java.util.Map;
 
-public class TypeMapper {
+public final class TypeMapper {
+
     private static final Map<Class<?>, SQLType> types = initMap();
 
-    private TypeMapper() {
-    }
+    private TypeMapper() {}
 
     //как минимум надо добавить timestamp_with_timezone
     private static Map<Class<?>, SQLType> initMap() {

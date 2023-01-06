@@ -11,9 +11,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ReflectionUtils {
-    private ReflectionUtils() {
-    }
+public final class ReflectionUtils {
+
+    private ReflectionUtils() {}
 
     public static List<Field> getIds(Class<?> entity) {
         return Arrays.stream(entity.getDeclaredFields())

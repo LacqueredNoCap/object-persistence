@@ -7,25 +7,22 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import java.time.LocalDate;
-import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SqlGeneratorTest {
-    SqlGenerator generator = SqlGenerator.getInstance();
-    private static final String ENTITY_NAME = "TestEntity";
+    private final SqlGenerator generator = SqlGenerator.getInstance();
+
     @Test
     void insertRecords() {
         try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
             mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
-            LocalDate date = LocalDate.now();
             String result = generator.insertRecords(
-                    List.of(new TestEntity(1L, date), new TestEntity(2L, date)),
-                    ENTITY_NAME
+                    TestEntity.class, 3, Set.of("date", "id")
             );
             assertEquals(
-                    String.format("INSERT INTO testEntity (date, id) VALUES ('%s', '1'), ('%s', '2');", date, date),
+                    "INSERT INTO testentity (id, date) VALUES (?, ?), (?, ?), (?, ?);",
                     result
             );
         }
@@ -35,10 +32,9 @@ class SqlGeneratorTest {
     void insertRecord() {
         try (MockedStatic<EntityCash> mockedStatic = Mockito.mockStatic(EntityCash.class)) {
             mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
-            LocalDate date = LocalDate.now();
-            String result = generator.insertRecord(new TestEntity(1L, date));
+            String result = generator.insertRecord(TestEntity.class, Set.of("date", "id"));
             assertEquals(
-                    String.format("INSERT INTO testEntity (date, id) VALUES ('%s', '1');", date),
+                    "INSERT INTO testentity (id, date) VALUES (?, ?);",
                     result
             );
         }
@@ -50,9 +46,10 @@ class SqlGeneratorTest {
             mockedStatic.when(() -> EntityCash.getEntityInfo(TestEntity.class)).thenReturn(EntityInfoImpl.create(TestEntity.class));
             String result = generator.createTable(TestEntity.class);
             assertEquals(
-                    "CREATE TABLE IF NOT EXISTS TestEntity (id BIGINT, date DATE);",
+                    "CREATE TABLE IF NOT EXISTS testentity (id BIGINT PRIMARY KEY, date DATE);",
                     result
             );
         }
     }
+
 }

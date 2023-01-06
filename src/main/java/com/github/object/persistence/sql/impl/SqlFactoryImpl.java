@@ -29,13 +29,17 @@ public final class SqlFactoryImpl implements SessionFactory {
     }
 
     @Override
+    public Session getCurrentSession() {
+        return null;
+    }
+
+    @Override
     public void initializeDatasource() {
         if (ConfigDataSource.getInstance().isInitializeNeeded()) {
             Iterable<Class<?>> entityClasses = ClassIndex.getAnnotated(Entity.class);
             installer.installConnection().execute(validateAndCreateTables(entityClasses));
         }
     }
-
 
     private String validateAndCreateTables(Iterable<Class<?>> entityClasses) {
         return StreamSupport

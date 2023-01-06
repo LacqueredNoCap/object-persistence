@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class EntityCash {
+@SuppressWarnings("unchecked")
+public final class EntityCash {
+
     private static final Map<Class<?>, EntityInfo<?>> cashMap = initCashMap();
 
     private EntityCash() {

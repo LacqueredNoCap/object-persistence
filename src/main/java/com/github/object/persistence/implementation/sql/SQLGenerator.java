@@ -38,7 +38,7 @@ public interface SQLGenerator {
      *
      * @return сгенерированный SQL-код
      */
-    <T, R> String deleteById(Class<T> entityClass, R id);
+    <T, R> String deleteRecordById(Class<T> entityClass, R id);
 
     /**
      * Обновление записи в таблице.

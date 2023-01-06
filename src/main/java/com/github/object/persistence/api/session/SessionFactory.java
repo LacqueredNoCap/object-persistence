@@ -1,16 +1,18 @@
 package com.github.object.persistence.api.session;
 
 /**
- * Общий интерфейс для фабрики сессиий
+ * Общий интерфейс для фабрики сессий.
  */
-//should be package-private
 public interface SessionFactory {
+
     /**
      * Создание сессии с подключением к datasource.
      *
      * @return сессия подключения
      */
     Session openSession();
+
+    Session getCurrentSession();
 
     void initializeDatasource();
 }

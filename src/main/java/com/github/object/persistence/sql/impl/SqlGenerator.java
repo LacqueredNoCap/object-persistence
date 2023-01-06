@@ -9,6 +9,7 @@ import com.github.object.persistence.sql.types.TypeMapper;
 import javax.persistence.Id;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -123,9 +124,10 @@ public class SqlGenerator {
         return result.substring(0, result.length() - 1) + ";";
     }
 
-    String getFromTableWithPredicate(Class<?> kClass, String predicate) {
+    String getFromTableWithPredicate(Class<?> kClass, Optional<String> predicate) {
         EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
-        return createWithWhereScript(String.format(SELECT, info.getEntityName()), predicate);
+        return predicate.map(s -> createWithWhereScript(String.format(SELECT, info.getEntityName()), s))
+                .orElseGet(() -> String.format(SELECT, info.getEntityName()));
     }
 
     String deleteByPredicate(Class<?> kClass, String predicate) {
@@ -137,18 +139,21 @@ public class SqlGenerator {
         return String.join(" AND ", conditions);
     }
 
-    String updateByPredicate(Class<?> kClass, Set<String> columnNames, String predicate) {
+    String updateByPredicate(Class<?> kClass, Set<String> columnNames, Optional<String> predicate) {
         EntityInfo<?> info = EntityCash.getEntityInfo(kClass);
         String update = StringUtils.separateWithSpace(
                 String.format(UPDATE, info.getEntityName()),
                 SET,
                 columnNames.stream().map(name -> String.format(PREDICATE, name)).collect(Collectors.joining(SEPARATOR))
         );
+        if (predicate.isPresent()) {
+            return createWithWhereScript(
+                    update,
+                    predicate.get()
+            );
+        }
 
-        return createWithWhereScript(
-                update,
-                predicate
-        );
+        return update;
     }
 
     private String createWithWhereScript(String prefix, String predicate) {

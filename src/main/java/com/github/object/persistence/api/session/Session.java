@@ -1,7 +1,8 @@
 package com.github.object.persistence.api.session;
 
+import com.github.object.persistence.api.criteria.Query;
+
 import java.util.Collection;
-import java.util.List;
 
 //будет работать с datasourceWrapper
 public interface Session extends AutoCloseable {
@@ -13,7 +14,6 @@ public interface Session extends AutoCloseable {
      *
      * @param entityClass класс сущности
      * @param id          идентификатор
-     *
      * @return сущность, находящаяся в хранилище с данным идентификатором
      */
     <T, R> T getRecord(Class<T> entityClass, R id);
@@ -22,7 +22,6 @@ public interface Session extends AutoCloseable {
      * Сохранить или обновить сущность в хранилище.
      *
      * @param entity сущность, которую необходимо сохранить
-     *
      * @return идентификатор, с котором была сохранена сущность
      */
     <T> boolean saveOrUpdate(T entity);
@@ -32,12 +31,16 @@ public interface Session extends AutoCloseable {
     /**
      * Удалить сущность из хранилища.
      *
-     * @param entity сущность, которую необходимо сохранить
+     * @param entity сущность, которую необходимо сохранить.
      */
     <T> void deleteRecord(T entity);
 
-    <T> List<T> getRecords(Class<T> entityClass, String predicate);
-
-    <T> void deleteRecord(Class<T> entityClass, String predicate);
+    /**
+     * Предоставляет конфигуратор запросов по типу сущности.
+     *
+     * @param clazz тип сущности.
+     * @return конфигуратор запросов.
+     */
+    <T> Query<T> buildQuery(Class<T> clazz);
 
 }
