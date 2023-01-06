@@ -28,8 +28,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class FromSqlToObjectMapper<R extends Connection> {
+    private static final Logger logger = LoggerFactory.getLogger(FromSqlToObjectMapper.class);
     private final SqlGenerator generator;
-    private final Logger logger = LoggerFactory.getLogger(FromSqlToObjectMapper.class);
     private static final String PREDICATE = "%s = %s";
 
 
@@ -105,7 +105,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         }
     }
 
-    <T> List<T> get(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
+    public <T> List<T> get(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
         String script = generator.getFromTableWithPredicate(entityClass, predicate);
         try (PreparedStatement statement = wrapper.getSource()
                 .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
@@ -127,7 +127,7 @@ public class FromSqlToObjectMapper<R extends Connection> {
         return get(wrapper, entityClass, predicateById(idField, idValue)).get(0);
     }
 
-    <T> void delete(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
+    public <T> void delete(DataSourceWrapper<R> wrapper, Class<T> entityClass, String predicate) {
         String script = generator.getFromTableWithPredicate(entityClass, predicate);
         try (PreparedStatement statement = wrapper.getSource()
                 .prepareStatement(script, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {

@@ -38,10 +38,6 @@ public interface Session extends AutoCloseable {
      */
     <T> void deleteRecord(T entity);
 
-    <T> List<T> getRecords(Class<T> entityClass, String predicate);
-
-    <T> void deleteRecord(Class<T> entityClass, String predicate);
-
     /**
      * Предоставляет конфигуратор запросов по типу сущности.
      *

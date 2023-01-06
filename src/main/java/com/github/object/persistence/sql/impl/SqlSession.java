@@ -1,16 +1,15 @@
 package com.github.object.persistence.sql.impl;
 
-import com.github.object.persistence.api.criteria.Query;
-import com.github.object.persistence.api.session.Session;
+import com.github.object.persistence.api.session.AbstractSession;
 import com.github.object.persistence.common.DataSourceWrapper;
-import com.github.object.persistence.common.EntityCash;
-import com.github.object.persistence.sql.impl.criteria.QueryImpl;
 
 import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-public class SqlSession implements Session {
+public class SqlSession extends AbstractSession {
     private final DataSourceWrapper<Connection> connection;
     private final FromSqlToObjectMapper<Connection> mapper;
 
@@ -30,7 +29,7 @@ public class SqlSession implements Session {
         return mapper.get(connection, entityClass, id);
     }
 
-    public <T> List<T> getRecords(Class<T> entityClass, String predicate) {
+    public <T> List<T> getRecords(Class<T> entityClass, Optional<String> predicate) {
         return mapper.get(connection, entityClass, predicate);
     }
 
@@ -48,17 +47,17 @@ public class SqlSession implements Session {
     }
 
     @Override
+    public <T> long updateRecord(Class<T> entityClass, Map<String, Object> fieldValueMap, Optional<String> predicate) {
+        return 0;
+    }
+
+    @Override
     public <T> void deleteRecord(T entity) {
         mapper.delete(connection, entity);
     }
 
-    public <T> void deleteRecord(Class<T> entityClass, String predicate) {
+    public <T> long deleteRecord(Class<T> entityClass, Optional<String> predicate) {
         mapper.delete(connection, entityClass, predicate);
-    }
-
-    @Override
-    public <T> Query<T> buildQuery(Class<T> clazz) {
-        return QueryImpl.getQuery(EntityCash.getEntityInfo(clazz));
     }
 
     @Override
