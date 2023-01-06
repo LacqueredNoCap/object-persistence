@@ -1,5 +1,6 @@
 package com.github.object.persistence.sql.impl;
 
+import com.github.object.persistence.api.session.Session;
 import com.github.object.persistence.api.session.SessionFactory;
 import com.github.object.persistence.common.ConfigDataSource;
 import com.github.object.persistence.common.ConnectionInstaller;
@@ -22,13 +23,13 @@ public final class SqlFactoryImpl implements SessionFactory {
     }
 
     @Override
-    public com.github.object.persistence.api.session.Session openSession() {
+    public Session openSession() {
         DataSourceWrapper<Connection> wrapper = installer.installConnection();
         return new SqlSession(wrapper, mapper);
     }
 
     @Override
-    public com.github.object.persistence.api.session.Session getCurrentSession() {
+    public Session getCurrentSession() {
         return null;
     }
 
