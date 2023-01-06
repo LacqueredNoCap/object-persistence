@@ -1,0 +1,89 @@
+package com.github.object.persistence.common;
+
+
+import com.github.object.persistence.exception.ValidationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Properties;
+
+public final class ConfigDataSource {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Properties properties = loadConfig();
+
+    private static final String CONFIG_NAME = "persistence.properties";
+    private static final String TYPE = "persistence.type";
+    private static final String URL = "persistence.url";
+    private static final String USERNAME = "persistence.username";
+    private static final String PASSWORD = "persistence.password";
+    private static final String DRIVER = "persistence.driver";
+    private static final String IS_INIT = "persistence.initialize";
+    private static final ConfigDataSource INSTANCE = new ConfigDataSource();
+
+    private ConfigDataSource() {
+    }
+
+    private Properties loadConfig() {
+        try {
+            Properties prop = new Properties();
+            prop.load(this.getClass().getClassLoader().getResourceAsStream(CONFIG_NAME));
+            validateProperties(prop);
+            return prop;
+        } catch (IOException exception) {
+            logger.error("Error while loading config: ", exception);
+            throw new NullPointerException("Config is not present");
+        }
+    }
+
+    private void validateProperties(Properties prop) {
+        if (prop.isEmpty()) {
+            throw new ValidationException("Config file is empty");
+        }
+        validateProperties(prop, TYPE, URL, USERNAME, PASSWORD, IS_INIT);
+        if (getDataSourceType(prop).equals(DbTypes.RELATIONAL)) {
+            validateProperties(prop, DRIVER);
+        }
+    }
+
+    private DbTypes getDataSourceType(Properties prop) {
+        return DbTypes.getType(prop.getProperty(TYPE));
+    }
+
+    public DbTypes getDataSourceType() {
+        return getDataSourceType(properties);
+    }
+
+    public String getDataSourceUrl() {
+        return properties.getProperty(URL);
+    }
+
+    public String getUsername() {
+        return properties.getProperty(USERNAME);
+    }
+
+    public String getPassword() {
+        return properties.getProperty(PASSWORD);
+    }
+
+    public String getDriver() {
+        return properties.getProperty(DRIVER);
+    }
+
+    public boolean isInitializeNeeded() {
+        return Boolean.parseBoolean(properties.getProperty(IS_INIT));
+    }
+
+    public static ConfigDataSource getInstance() {
+        return INSTANCE;
+    }
+
+    private void validateProperties(Properties prop, String... propertyNames) {
+        for (String property : propertyNames) {
+            if (!prop.contains(property)) {
+                throw new ValidationException(String.format("Required setting %s is not present", property));
+            }
+        }
+    }
+}
+
