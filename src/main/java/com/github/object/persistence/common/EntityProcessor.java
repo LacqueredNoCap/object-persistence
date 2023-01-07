@@ -10,17 +10,20 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.persistence.Entity;
-import javax.persistence.MappedSuperclass;
 import javax.tools.Diagnostic;
 import java.util.Set;
 
-@SupportedAnnotationTypes({"javax.persistence.Entity", "javax.persistence.MappedSuperclass"})
+@SupportedAnnotationTypes("javax.persistence.Entity")
 @AutoService(Processor.class)
 public class EntityProcessor extends ClassIndexProcessor {
-    private final Messager logger = processingEnv.getMessager();
+
+    private final Messager logger;
+    private final EntityValidator entityValidator;
 
     public EntityProcessor() {
-        indexAnnotations(Entity.class, MappedSuperclass.class);
+        logger = processingEnv.getMessager();
+        entityValidator = EntityValidator.getInstance();
+        indexAnnotations(Entity.class);
     }
 
     @Override
@@ -37,7 +40,7 @@ public class EntityProcessor extends ClassIndexProcessor {
             final TypeElement object = (TypeElement) element.getEnclosingElement();
             try {
                 Class<?> entityClass = Class.forName(object.getQualifiedName().toString());
-                EntityValidator.getInstance().validateEntity(entityClass);
+                entityValidator.validateEntity(entityClass);
             } catch (ClassNotFoundException e) {
                 logger.printMessage(Diagnostic.Kind.ERROR, String.format("Class with name %s not found", object.getQualifiedName()));
                 return false;
@@ -45,7 +48,7 @@ public class EntityProcessor extends ClassIndexProcessor {
         }
 
         super.process(annotations, roundEnv);
-
         return true;
     }
+
 }
