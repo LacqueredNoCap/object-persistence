@@ -5,10 +5,7 @@ import com.github.object.persistence.common.utils.StringUtils;
 import com.github.object.persistence.exception.ValidationException;
 import com.github.object.persistence.sql.types.TypeMapper;
 
-import javax.persistence.Entity;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
+import javax.persistence.*;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,8 +15,7 @@ public class EntityValidator {
 
     private static final EntityValidator INSTANCE = new EntityValidator();
 
-    private EntityValidator() {
-    }
+    private EntityValidator() {}
 
     public static EntityValidator getInstance() {
         return INSTANCE;
@@ -28,16 +24,20 @@ public class EntityValidator {
     public void validateEntity(Class<?> entity) {
         validateClass(entity);
         validateIds(entity);
-        for (Field field : entity.getDeclaredFields()) {
-            validateField(field);
-        }
+        validateFields(entity);
+        validateSuperclasses(entity);
     }
 
     private void validateClass(Class<?> entity) {
-        String message;
         if (!entity.isAnnotationPresent(Entity.class)) {
-            message = String.format("Using %s class without Entity annotation", entity.getSimpleName());
-            throw new ValidationException(message);
+            throw new ValidationException(
+                    String.format("Using %s class without Entity annotation", entity.getSimpleName())
+            );
+        }
+        if (entity.isAnnotationPresent(MappedSuperclass.class)) {
+            throw new ValidationException(
+                    "Using on " + entity.getName() + " @Entity and @MappedSuperclass annotations together is not allowed"
+            );
         }
     }
 
@@ -54,17 +54,18 @@ public class EntityValidator {
         }
     }
 
-    private void validateField(Field fieldType) {
-        validateSingleRelation(fieldType);
-        Class<?> fieldClass = fieldType.getType();
-        if (Collection.class.isAssignableFrom(fieldClass)) {
-            validateCollectionField(fieldType);
-        }
-
-        if (fieldClass.isAnnotationPresent(Entity.class)) {
-            validateEntity(fieldType);
-        } else {
-            TypeMapper.validateSupportedType(fieldClass, prepareException(fieldType, "Current type is not entity or supported"));
+    private void validateFields(Class<?> entity) {
+        for (Field field : entity.getDeclaredFields()) {
+            validateSingleRelation(field);
+            Class<?> fieldClass = field.getType();
+            if (Collection.class.isAssignableFrom(fieldClass)) {
+                validateCollectionField(field);
+            }
+            if (fieldClass.isAnnotationPresent(Entity.class)) {
+                validateEntity(field);
+            } else {
+                TypeMapper.validateSupportedType(fieldClass, prepareException(field, "Current type is not entity or supported"));
+            }
         }
     }
 
@@ -139,6 +140,21 @@ public class EntityValidator {
             }
         } catch (NoSuchFieldException e) {
             throwWithValidationMessage(fieldType, "In target class \"mappedBy\" field is not present");
+        }
+    }
+
+    private void validateSuperclasses(Class<?> entity) {
+        Class<?> superclass = entity;
+        while ((superclass = superclass.getSuperclass()).isAnnotationPresent(MappedSuperclass.class)) {
+            for (Field field : superclass.getDeclaredFields()) {
+                try {
+                    TypeMapper.validateSupportedType(field.getType());
+                } catch (IllegalArgumentException e) {
+                    throw new ValidationException(
+                            "Exception during validation fields of " + superclass.getName() + ": " +
+                                    e.getMessage());
+                }
+            }
         }
     }
 

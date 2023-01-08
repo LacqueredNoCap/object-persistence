@@ -4,20 +4,15 @@ import com.github.object.persistence.common.utils.StringUtils;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
+import javax.persistence.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class EntityInfoImpl<T> implements EntityInfo<T> {
+
     private final Class<T> type;
     private final Set<Field> fields;
     private final Map<String, Field> fieldsMap;
@@ -26,9 +21,9 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
     private final Set<Field> oneToManyFields;
     private final Set<Field> noRelationFields;
 
-    private EntityInfoImpl(Class<T> type) {
-        this.type = type;
-        this.fields = initFields();
+    private EntityInfoImpl(Class<T> clazz) {
+        type = clazz;
+        fields = initFields();
         fieldsMap = initFieldsMap();
         manyToOneFields = getFieldsWithAnnotation(ManyToOne.class);
         oneToOneFields = getFieldsWithAnnotation(OneToOne.class);
@@ -46,6 +41,7 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Collection<T> getCollectionProxy(MethodInterceptor whatToProxy) {
         return (Collection<T>) Enhancer.create(type, whatToProxy);
     }
@@ -108,7 +104,9 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
     }
 
     public Set<Field> getFieldsWithAnnotation(Class<? extends Annotation> annotationClass) {
-        return fields.stream().filter(field -> field.isAnnotationPresent(annotationClass)).collect(Collectors.toSet());
+        return fields.stream()
+                .filter(field -> field.isAnnotationPresent(annotationClass))
+                .collect(Collectors.toSet());
     }
 
     private Field getFieldByName(String fieldName) {
@@ -127,8 +125,19 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
     }
 
     private Set<Field> initFields() {
-        return Arrays.stream(type.getDeclaredFields())
+        Set<Field> fieldSet = Stream.of(type.getDeclaredFields())
                 .collect(Collectors.toSet());
+        fieldSet.addAll(superclassFields());
+        return fieldSet;
+    }
+
+    private Set<Field> superclassFields() {
+        Set<Field> fieldSet = new HashSet<>();
+        Class<?> superclass = type;
+        while ((superclass = superclass.getSuperclass()).isAnnotationPresent(MappedSuperclass.class)) {
+            fieldSet.addAll(Arrays.asList(superclass.getDeclaredFields()));
+        }
+        return fieldSet;
     }
 
     private Set<Field> initNoRelationFields() {
