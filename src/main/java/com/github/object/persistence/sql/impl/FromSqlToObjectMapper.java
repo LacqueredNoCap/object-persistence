@@ -29,10 +29,12 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class FromSqlToObjectMapper<R extends Connection> {
+
     private static final Logger logger = LoggerFactory.getLogger(FromSqlToObjectMapper.class);
-    private final SqlGenerator generator;
+
     private static final String PREDICATE = "%s = %s";
 
+    private final SqlGenerator generator;
 
     public FromSqlToObjectMapper(SqlGenerator generator) {
         this.generator = generator;

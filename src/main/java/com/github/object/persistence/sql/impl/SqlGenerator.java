@@ -35,8 +35,7 @@ public class SqlGenerator {
     private static final String CONSTRAINT = "CONSTRAINT";
     private static final String FK_CONSTRAINT = "FK_%s_%s";
 
-    private SqlGenerator() {
-    }
+    private SqlGenerator() {}
 
     private static final SqlGenerator INSTANCE = new SqlGenerator();
 

@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public final class SqlFactoryImpl implements SessionFactory {
+
     private final ConnectionInstaller<Connection> installer;
     private final FromSqlToObjectMapper<Connection> mapper;
 
@@ -26,11 +27,6 @@ public final class SqlFactoryImpl implements SessionFactory {
     public Session openSession() {
         DataSourceWrapper<Connection> wrapper = installer.installConnection();
         return new SqlSession(wrapper, mapper);
-    }
-
-    @Override
-    public Session getCurrentSession() {
-        return null;
     }
 
     @Override
