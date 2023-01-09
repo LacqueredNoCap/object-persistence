@@ -1,9 +1,11 @@
 package com.github.object.persistence.common.utils;
 
 import com.github.object.persistence.exception.ReflectionOperationException;
+import com.github.object.persistence.sql.types.TypeMapper;
 
 import javax.annotation.Nullable;
 import javax.persistence.Id;
+import javax.persistence.MappedSuperclass;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
@@ -16,9 +18,17 @@ public final class ReflectionUtils {
     private ReflectionUtils() {}
 
     public static List<Field> getIds(Class<?> entity) {
-        return Arrays.stream(entity.getDeclaredFields())
+        List<Field> idFields = Arrays.stream(entity.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Id.class))
                 .collect(Collectors.toList());
+
+        Class<?> superclass = entity;
+        while ((superclass = superclass.getSuperclass()).isAnnotationPresent(MappedSuperclass.class)) {
+            Arrays.stream(superclass.getDeclaredFields())
+                    .filter(field -> field.isAnnotationPresent(Id.class))
+                    .forEach(idFields::add);
+        }
+        return idFields;
     }
 
     public static Class<?> getGenericType(Field field) {

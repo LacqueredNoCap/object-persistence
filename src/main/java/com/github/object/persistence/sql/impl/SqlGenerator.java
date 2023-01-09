@@ -146,22 +146,11 @@ public class SqlGenerator {
                 SET,
                 columnNames.stream().map(name -> String.format(PREDICATE, name)).collect(Collectors.joining(SEPARATOR))
         );
-        if (predicate.isPresent()) {
-            return createWithWhereScript(
-                    update,
-                    predicate.get()
-            );
-        }
-
-        return update;
+        return predicate.map(p -> createWithWhereScript(update, p)).orElse(update);
     }
 
     private String createWithWhereScript(String prefix, String predicate) {
-        return StringUtils.separateWithSpace(
-                prefix,
-                WHERE,
-                predicate
-        );
+        return StringUtils.separateWithSpace(prefix, WHERE, predicate);
     }
 
     private String prepareForeignKeyReference(Field field) {
@@ -181,7 +170,7 @@ public class SqlGenerator {
         String sqlType = TypeMapper.getSQLTypeString(field.getType());
         String fieldName = field.getName();
         if (sqlType == null) {
-            String message = String.format("Unexpected type of entity %s field %s", field.getDeclaringClass().getSimpleName(), field.getName());
+            String message = String.format("Unexpected type of entity %s field %s", field.getDeclaringClass().getName(), field.getName());
             throw new IllegalStateException(message);
         }
         if (field.isAnnotationPresent(Id.class)) {
@@ -190,17 +179,8 @@ public class SqlGenerator {
         return StringUtils.separateWithSpace(fieldName, sqlType);
     }
 
-    private String prepareScriptWithColumns(
-            Stream<String> columnNames,
-            String prefix,
-            String suffix
-    ) {
-        return columnNames.collect(Collectors.joining(
-                SEPARATOR,
-                prefix,
-                suffix
-        ));
+    private String prepareScriptWithColumns(Stream<String> columnNames, String prefix, String suffix) {
+        return columnNames.collect(Collectors.joining(SEPARATOR, prefix, suffix));
     }
-
 
 }

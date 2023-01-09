@@ -19,16 +19,23 @@ public final class TypeMapper {
         return Map.ofEntries(
                 Map.entry(LocalTime.class, JDBCType.TIME),
                 Map.entry(Float.class, JDBCType.REAL),
+                Map.entry(float.class, JDBCType.REAL),
                 Map.entry(Long.class, JDBCType.BIGINT),
+                Map.entry(long.class, JDBCType.BIGINT),
                 Map.entry(byte[].class, JDBCType.BINARY),
                 Map.entry(Instant.class, JDBCType.TIMESTAMP),
                 Map.entry(Short.class, JDBCType.SMALLINT),
+                Map.entry(short.class, JDBCType.SMALLINT),
                 Map.entry(String.class, JDBCType.VARCHAR),
                 Map.entry(Integer.class, JDBCType.INTEGER),
+                Map.entry(int.class, JDBCType.INTEGER),
                 Map.entry(Double.class, JDBCType.DOUBLE),
+                Map.entry(double.class, JDBCType.DOUBLE),
                 Map.entry(Date.class, JDBCType.DATE),
                 Map.entry(Byte.class, JDBCType.TINYINT),
+                Map.entry(byte.class, JDBCType.TINYINT),
                 Map.entry(Boolean.class, JDBCType.BIT),
+                Map.entry(boolean.class, JDBCType.BIT),
                 Map.entry(BigDecimal.class, JDBCType.NUMERIC)
         );
     }

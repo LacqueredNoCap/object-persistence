@@ -31,7 +31,7 @@ public class EntityValidator {
     private void validateClass(Class<?> entity) {
         if (!entity.isAnnotationPresent(Entity.class)) {
             throw new ValidationException(
-                    String.format("Using %s class without Entity annotation", entity.getSimpleName())
+                    String.format("Using %s class without Entity annotation", entity.getName())
             );
         }
         if (entity.isAnnotationPresent(MappedSuperclass.class)) {
@@ -43,14 +43,11 @@ public class EntityValidator {
 
     private void validateIds(Class<?> entity) {
         List<Field> ids = ReflectionUtils.getIds(entity);
-        String message;
         if (ids.isEmpty()) {
-            message = String.format("Id in entity class %s is not present", entity.getSimpleName());
-            throw new ValidationException(message);
+            throw new ValidationException(String.format("Id in entity class %s is not present", entity.getName()));
         }
         if (ids.size() != 1) {
-            message = String.format("Using %s class with several ids", entity.getSimpleName());
-            throw new ValidationException(message);
+            throw new ValidationException(String.format("Using %s class with several ids", entity.getName()));
         }
     }
 
@@ -150,9 +147,7 @@ public class EntityValidator {
                 try {
                     TypeMapper.validateSupportedType(field.getType());
                 } catch (IllegalArgumentException e) {
-                    throw new ValidationException(
-                            "Exception during validation fields of " + superclass.getName() + ": " +
-                                    e.getMessage());
+                    throwWithValidationMessage(field, e.getMessage());
                 }
             }
         }
@@ -166,7 +161,7 @@ public class EntityValidator {
         String errorMessage = String.format(
                 "Error while processing field %s in class %s: %s",
                 fieldType.getName(),
-                fieldType.getDeclaringClass().getSimpleName(),
+                fieldType.getDeclaringClass().getName(),
                 message
         );
 
