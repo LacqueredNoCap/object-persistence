@@ -9,6 +9,9 @@ import org.atteo.classindex.ClassIndex;
 
 import javax.persistence.Entity;
 import java.sql.Connection;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -26,7 +29,14 @@ public final class SqlFactoryImpl implements SessionFactory {
     @Override
     public Session openSession() {
         DataSourceWrapper<Connection> wrapper = installer.installConnection();
-        return new SqlSession(wrapper, mapper);
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                1,
+                1,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>()
+        );
+        return new SqlSession(wrapper, mapper, executor);
     }
 
     @Override
