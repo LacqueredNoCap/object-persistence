@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DataSourceWrapperImpl<T extends Connection> implements DataSourceWrapper<T> {
+
     private final T connection;
 
     public DataSourceWrapperImpl(T connection) {

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SqlGenerator {
+
     private static final String INSERT_INTO = "INSERT INTO %s (";
     private static final String VALUES = "VALUES";
     private static final String VALUES_WITH_PARENTHESIS = VALUES + " (";
@@ -81,7 +82,6 @@ public class SqlGenerator {
                 CLOSE_PARENTHESIS_END
         );
     }
-
 
     /**
      * Вставляет запись в существующую таблицу

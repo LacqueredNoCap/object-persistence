@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 public class SqlConnectionInstallerImpl implements ConnectionInstaller<Connection> {
+
     private final String url;
     private final Properties properties;
 

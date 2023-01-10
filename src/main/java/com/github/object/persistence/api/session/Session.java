@@ -4,7 +4,6 @@ import com.github.object.persistence.api.criteria.Query;
 
 import java.util.Collection;
 
-//будет работать с datasourceWrapper
 public interface Session extends AutoCloseable {
 
     <T> boolean createTable(Class<T> entityClass);

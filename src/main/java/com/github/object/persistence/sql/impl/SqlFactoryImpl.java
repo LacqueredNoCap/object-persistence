@@ -9,33 +9,25 @@ import org.atteo.classindex.ClassIndex;
 
 import javax.persistence.Entity;
 import java.sql.Connection;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public final class SqlFactoryImpl implements SessionFactory {
 
     private final ConnectionInstaller<Connection> installer;
-    private final FromSqlToObjectMapper<Connection> mapper;
 
     public SqlFactoryImpl(ConnectionInstaller<Connection> installer) {
         this.installer = installer;
-        this.mapper = new FromSqlToObjectMapper<>(SqlGenerator.getInstance());
         initializeDatasource();
     }
 
     @Override
     public Session openSession() {
         DataSourceWrapper<Connection> wrapper = installer.installConnection();
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(
-                1,
-                1,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>()
-        );
+        FromSqlToObjectMapper<Connection> mapper = new FromSqlToObjectMapper<>(SqlGenerator.getInstance());
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         return new SqlSession(wrapper, mapper, executor);
     }
 
