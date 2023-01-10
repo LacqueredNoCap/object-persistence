@@ -38,21 +38,6 @@
         <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>2.1.214</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-core</artifactId>
-      <version>6.1.5.Final</version>
-    </dependency>
-    <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-      <version>3.4.1</version>
-    </dependency>
-    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
       <version>1.4.5</version>
@@ -74,11 +59,7 @@
       <artifactId>guava</artifactId>
       <version>31.1-jre</version>
     </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-jpamodelgen</artifactId>
-      <version>5.3.7.Final</version>
-    </dependency>
+
     <dependency>
       <groupId>cglib</groupId>
       <artifactId>cglib</artifactId>
@@ -90,14 +71,6 @@
       <artifactId>classindex</artifactId>
       <version>3.13</version>
     </dependency>
-
-<!--    Нужен для формирования shaded-jar (позволяет перезаписывать версии зависимостей, -->
-<!--    если и в этом jar и в jar спользующем этот в качестве зависимости используется одна и та же зависимость разных версий)-->
-<!--    <dependency>-->
-<!--      <groupId>org.atteo.classindex</groupId>-->
-<!--      <artifactId>classindex-transformer</artifactId>-->
-<!--      <version>3.13</version>-->
-<!--    </dependency>-->
 
   </dependencies>
 
@@ -149,29 +122,6 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.4.1</version>
         </plugin>
-<!--        <plugin>-->
-<!--          <artifactId>maven-shade-plugin</artifactId>-->
-<!--          <version>3.4.1</version>-->
-<!--          <executions>-->
-<!--            <execution>-->
-<!--              <phase>package</phase>-->
-<!--              <goals>-->
-<!--                <goal>shade</goal>-->
-<!--              </goals>-->
-<!--              <configuration>-->
-<!--                <transformers>-->
-<!--                  <transformer implementation="org.atteo.classindex.ClassIndexTransformer"/>-->
-<!--                </transformers>-->
-<!--              </configuration>-->
-<!--            </execution>-->
-<!--          </executions>-->
-<!--          <dependencies>-->
-<!--            <dependency>-->
-<!--              <groupId>org.atteo.classindex</groupId>-->
-<!--              <artifactId>classindex-transformer</artifactId>-->
-<!--            </dependency>-->
-<!--          </dependencies>-->
-<!--        </plugin>-->
       </plugins>
     </pluginManagement>
   </build>
