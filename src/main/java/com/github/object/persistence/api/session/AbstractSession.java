@@ -6,14 +6,21 @@ import com.github.object.persistence.common.QueryImpl;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 public abstract class AbstractSession implements Session {
+    protected final Executor executor;
 
-    public abstract <T> List<T> getRecords(Class<T> entityClass, Optional<String> predicate);
+    protected AbstractSession(Executor executor) {
+        this.executor = executor;
+    }
 
-    public abstract <T> long updateRecord(Class<T> entityClass, Map<String, Object> fieldValueMap, Optional<String> predicate);
+    public abstract <T> CompletableFuture<List<T>> getRecords(Class<T> entityClass, Optional<String> predicate);
 
-    public abstract <T> void deleteRecord(Class<T> entityClass, Optional<String> predicate);
+    public abstract <T> CompletableFuture<Long> updateRecord(Class<T> entityClass, Map<String, Object> fieldValueMap, Optional<String> predicate);
+
+    public abstract <T> CompletableFuture<Void> deleteRecord(Class<T> entityClass, Optional<String> predicate);
 
     @Override
     public <T> Query<T> buildQuery(Class<T> clazz) {

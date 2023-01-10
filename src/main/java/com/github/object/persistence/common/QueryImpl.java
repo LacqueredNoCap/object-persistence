@@ -5,6 +5,7 @@ import com.github.object.persistence.api.criteria.Query;
 import com.github.object.persistence.api.session.AbstractSession;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public final class QueryImpl<T> implements Query<T> {
 
@@ -21,19 +22,19 @@ public final class QueryImpl<T> implements Query<T> {
     }
 
     @Override
-    public List<T> selectWhere(Predicate predicate) {
+    public CompletableFuture<List<T>> selectWhere(Predicate predicate) {
         return session.getRecords(clazz, getPredicate(predicate));
     }
 
     @Override
-    public long updateWhere(Map<String, Object> fieldValueMap, Predicate predicate) {
+    public CompletableFuture<Long> updateWhere(Map<String, Object> fieldValueMap, Predicate predicate) {
         Map<String, Object> map = validateFieldValueMap(fieldValueMap);
         return session.updateRecord(clazz, map, getPredicate(predicate));
     }
 
     @Override
-    public void deleteWhere(Predicate predicate) {
-        session.deleteRecord(clazz, getPredicate(predicate));
+    public CompletableFuture<Void> deleteWhere(Predicate predicate) {
+        return session.deleteRecord(clazz, getPredicate(predicate));
     }
 
     private Optional<String> getPredicate(Predicate predicate) {

@@ -3,10 +3,11 @@ package com.github.object.persistence.api.session;
 import com.github.object.persistence.api.criteria.Query;
 
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
 public interface Session extends AutoCloseable {
 
-    <T> boolean createTable(Class<T> entityClass);
+    <T> CompletableFuture<Boolean> createTable(Class<T> entityClass);
 
     /**
      * Достать сущность из хранилища по id.
@@ -15,7 +16,7 @@ public interface Session extends AutoCloseable {
      * @param id          идентификатор
      * @return сущность, находящаяся в хранилище с данным идентификатором
      */
-    <T, R> T getRecord(Class<T> entityClass, R id);
+    <T, R> CompletableFuture<T> getRecord(Class<T> entityClass, R id);
 
     /**
      * Сохранить или обновить сущность в хранилище.
@@ -23,16 +24,16 @@ public interface Session extends AutoCloseable {
      * @param entity сущность, которую необходимо сохранить
      * @return идентификатор, с котором была сохранена сущность
      */
-    <T> boolean saveOrUpdate(T entity);
+    <T> CompletableFuture<Boolean> saveOrUpdate(T entity);
 
-    <T> boolean saveOrUpdate(Collection<T> entities);
+    <T> CompletableFuture<Boolean> saveOrUpdate(Collection<T> entities);
 
     /**
      * Удалить сущность из хранилища.
      *
      * @param entity сущность, которую необходимо сохранить.
      */
-    <T> void deleteRecord(T entity);
+    <T> CompletableFuture<Void> deleteRecord(T entity);
 
     /**
      * Предоставляет конфигуратор запросов по типу сущности.

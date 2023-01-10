@@ -19,6 +19,7 @@ public final class ConfigDataSource {
     private static final String PASSWORD = "persistence.password";
     private static final String DRIVER = "persistence.driver";
     private static final String IS_INIT = "persistence.initialize";
+    private static final String THREAD_POOL_SIZE = "persistence.thread-pool-size";
     private static final ConfigDataSource INSTANCE = new ConfigDataSource();
 
     private ConfigDataSource() {
@@ -40,7 +41,7 @@ public final class ConfigDataSource {
         if (prop.isEmpty()) {
             throw new ValidationException("Config file is empty");
         }
-        validateProperties(prop, TYPE, URL, USERNAME, PASSWORD, IS_INIT);
+        validateProperties(prop, TYPE, URL, USERNAME, PASSWORD, IS_INIT, THREAD_POOL_SIZE);
         if (getDataSourceType(prop).equals(DbTypes.RELATIONAL)) {
             validateProperties(prop, DRIVER);
         }
@@ -68,6 +69,10 @@ public final class ConfigDataSource {
 
     public String getDriver() {
         return properties.getProperty(DRIVER);
+    }
+
+    public int getThreadPoolSize() {
+        return Integer.parseInt((properties.getProperty(THREAD_POOL_SIZE)));
     }
 
     public boolean isInitializeNeeded() {
