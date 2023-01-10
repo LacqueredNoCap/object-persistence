@@ -17,12 +17,10 @@ import java.util.Set;
 @AutoService(Processor.class)
 public class EntityProcessor extends ClassIndexProcessor {
 
-    private final Messager logger;
-    private final EntityValidator entityValidator;
+    private final Messager logger = processingEnv.getMessager();
+    private final EntityValidator entityValidator = EntityValidator.getInstance();
 
     public EntityProcessor() {
-        logger = processingEnv.getMessager();
-        entityValidator = EntityValidator.getInstance();
         indexAnnotations(Entity.class);
     }
 
@@ -32,6 +30,7 @@ public class EntityProcessor extends ClassIndexProcessor {
             logger.printMessage(Diagnostic.Kind.NOTE, "Annotations not found");
             return false;
         }
+        logger.printMessage(Diagnostic.Kind.NOTE, "starting processing");
 
         TypeElement annotation = annotations.iterator().next();
 

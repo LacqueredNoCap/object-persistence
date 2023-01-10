@@ -11,9 +11,40 @@
 
     <artifactId>api</artifactId>
 
-    <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-    </properties>
+<!--    <dependencies>-->
+<!--        <dependency>-->
+<!--            <groupId>org.atteo.classindex</groupId>-->
+<!--            <artifactId>classindex-transformer</artifactId>-->
+<!--            <version>3.13</version>-->
+<!--        </dependency>-->
+<!--    </dependencies>-->
+<!--    <build>-->
+<!--        <plugins>-->
+<!--            <plugin>-->
+<!--                <artifactId>maven-shade-plugin</artifactId>-->
+<!--                <version>3.2.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>shade</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <transformers>-->
+<!--                                <transformer implementation="org.atteo.classindex.ClassIndexTransformer"/>-->
+<!--                            </transformers>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>org.atteo.classindex</groupId>-->
+<!--                        <artifactId>classindex-transformer</artifactId>-->
+<!--                        <version>3.13</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--            </plugin>-->
+<!--        </plugins>-->
+<!--    </build>-->
 
 </project>
