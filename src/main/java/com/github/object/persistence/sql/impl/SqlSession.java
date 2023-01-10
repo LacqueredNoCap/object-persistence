@@ -3,7 +3,7 @@ package com.github.object.persistence.sql.impl;
 import com.github.object.persistence.api.criteria.Query;
 import com.github.object.persistence.api.session.AbstractSession;
 import com.github.object.persistence.common.DataSourceWrapper;
-import com.github.object.persistence.sql.impl.criteria.QueryImpl;
+import com.github.object.persistence.common.QueryImpl;
 
 import java.sql.Connection;
 import java.util.Collection;
@@ -60,11 +60,6 @@ public class SqlSession extends AbstractSession {
 
     public <T> void deleteRecord(Class<T> entityClass, Optional<String> predicate) {
         mapper.delete(connection, entityClass, predicate);
-    }
-
-    @Override
-    public <T> Query<T> buildQuery(Class<T> clazz) {
-        return QueryImpl.getQuery(this, clazz);
     }
 
     @Override

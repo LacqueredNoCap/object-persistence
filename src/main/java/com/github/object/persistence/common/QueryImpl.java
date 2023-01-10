@@ -1,4 +1,4 @@
-package com.github.object.persistence.sql.impl.criteria;
+package com.github.object.persistence.common;
 
 import com.github.object.persistence.api.criteria.Predicate;
 import com.github.object.persistence.api.criteria.Query;

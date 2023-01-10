@@ -3,6 +3,7 @@ package com.github.object.persistence.sql.impl.criteria;
 import com.github.object.persistence.api.criteria.Predicate;
 import com.github.object.persistence.api.criteria.Query;
 import com.github.object.persistence.api.session.AbstractSession;
+import com.github.object.persistence.common.QueryImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
