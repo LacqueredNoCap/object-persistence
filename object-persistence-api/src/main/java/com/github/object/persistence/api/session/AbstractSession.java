@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractSession implements Session {
-    protected final Executor executor;
+    protected final ExecutorService executor;
 
-    protected AbstractSession(Executor executor) {
+    protected AbstractSession(ExecutorService executor) {
         this.executor = executor;
     }
 

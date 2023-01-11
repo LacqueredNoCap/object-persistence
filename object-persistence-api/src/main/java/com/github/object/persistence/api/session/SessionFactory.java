@@ -13,4 +13,6 @@ public interface SessionFactory {
     Session openSession();
 
     void initializeDatasource();
+
+    void shutdown();
 }

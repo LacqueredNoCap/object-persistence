@@ -30,6 +30,10 @@ public class SessionProvider {
         return decideSession().openSession();
     }
 
+    public void shutdown(){
+        decideSession().shutdown();
+    }
+
     private SessionFactory decideSession() {
         SessionFactory factory = factories.get(ConfigDataSource.getInstance().getDataSourceType());
         if (factory == null) {

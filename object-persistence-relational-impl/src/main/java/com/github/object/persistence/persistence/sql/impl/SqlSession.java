@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 public class SqlSession extends AbstractSession {
 
@@ -17,7 +17,7 @@ public class SqlSession extends AbstractSession {
     private final FromSqlToObjectMapper<Connection> mapper;
 
 
-    public SqlSession(DataSourceWrapper<Connection> connection, FromSqlToObjectMapper<Connection> mapper, Executor executor) {
+    public SqlSession(DataSourceWrapper<Connection> connection, FromSqlToObjectMapper<Connection> mapper, ExecutorService executor) {
         super(executor);
         this.connection = connection;
         this.mapper = mapper;

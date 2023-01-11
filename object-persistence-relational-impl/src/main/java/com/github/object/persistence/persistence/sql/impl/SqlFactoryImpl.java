@@ -40,6 +40,11 @@ public final class SqlFactoryImpl implements SessionFactory {
         }
     }
 
+    @Override
+    public void shutdown() {
+        executor.shutdown();
+    }
+
     private String validateAndCreateTables(Iterable<Class<?>> entityClasses) {
         return StreamSupport
                 .stream(entityClasses.spliterator(), false)
