@@ -12,11 +12,6 @@
 
     <artifactId>object-persistence-testing</artifactId>
 
-    <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.github.object-persistence</groupId>
@@ -70,7 +65,4 @@
             </plugin>
         </plugins>
     </build>
-
-
-
 </project>

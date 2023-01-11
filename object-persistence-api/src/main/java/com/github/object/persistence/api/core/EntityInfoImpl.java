@@ -62,7 +62,7 @@ public class EntityInfoImpl<T> implements EntityInfo<T> {
 
     @Override
     public String getEntityName() {
-        return type.getName().toLowerCase();
+        return type.getSimpleName().toLowerCase();
     }
 
     @Override

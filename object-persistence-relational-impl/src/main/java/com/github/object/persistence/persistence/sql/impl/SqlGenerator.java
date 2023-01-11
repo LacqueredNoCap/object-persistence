@@ -77,9 +77,18 @@ public class SqlGenerator {
         Stream<String> noRelationStream = info.getNoRelationFields().stream()
                 .map(this::getTypeAndNameForUnrelatedField);
 
+        String tableName = info.getEntityName();
+        if (tableName.equalsIgnoreCase(VALUES) ||
+                tableName.equalsIgnoreCase(WHERE) ||
+                tableName.equalsIgnoreCase(SET) ||
+                tableName.equalsIgnoreCase(UNIQUE) ||
+                tableName.equalsIgnoreCase(CONSTRAINT) ||
+                tableName.equalsIgnoreCase("TABLE")) {
+            tableName = "_" + tableName + "_";
+        }
         return prepareScriptWithColumns(
                 Stream.concat(parentRelation, noRelationStream),
-                String.format(CREATE_SCRIPT, info.getEntityName()),
+                String.format(CREATE_SCRIPT, tableName),
                 CLOSE_PARENTHESIS_END
         );
     }
