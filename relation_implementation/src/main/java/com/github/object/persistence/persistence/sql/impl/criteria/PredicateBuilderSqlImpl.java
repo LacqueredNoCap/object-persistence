@@ -157,11 +157,7 @@ public final class PredicateBuilderSqlImpl implements PredicateBuilder {
         }
 
         usedVariables.addAll(other.usedVariables());
-        this.predicate = PredicatePattern.resolvePattern(
-                pattern,
-                this,
-                other
-        );
+        this.predicate = PredicatePattern.resolvePattern(pattern, this, other);
         return this;
     }
 
@@ -176,12 +172,8 @@ public final class PredicateBuilderSqlImpl implements PredicateBuilder {
             }
         }
 
-        String predicate = PredicatePattern.resolvePattern(
-                pattern,
-                values
-        );
+        String predicate = PredicatePattern.resolvePattern(pattern, values);
         buildWithDefaultOperator(predicate);
-
         return this;
     }
 
@@ -191,11 +183,7 @@ public final class PredicateBuilderSqlImpl implements PredicateBuilder {
             return;
         }
 
-        this.predicate = PredicatePattern.resolvePattern(
-                DEFAULT_OPERATOR,
-                this,
-                predicate
-        );
+        this.predicate = PredicatePattern.resolvePattern(DEFAULT_OPERATOR, this, predicate);
     }
 
 }
