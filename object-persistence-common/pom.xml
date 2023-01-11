@@ -27,7 +27,7 @@
 
         <dependency>
             <groupId>com.github.object-persistence</groupId>
-            <artifactId>object-persistence-relation_implementation</artifactId>
+            <artifactId>object-persistence-relational-impl</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

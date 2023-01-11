@@ -10,10 +10,10 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>object-persistence-Test</module>
+    <module>object-persistence-testing</module>
     <module>object-persistence-api</module>
     <module>object-persistence-common</module>
-    <module>object-persistence-relation_implementation</module>
+    <module>object-persistence-relational-impl</module>
   </modules>
 
   <name>ObjectPersistence</name>

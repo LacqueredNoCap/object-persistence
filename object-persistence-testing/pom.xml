@@ -10,7 +10,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>object-persistence-Test</artifactId>
+    <artifactId>object-persistence-testing</artifactId>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
